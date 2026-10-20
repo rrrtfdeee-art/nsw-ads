@@ -1,7 +1,7 @@
 /**
  * Novelskyworld - Ad Manager (Arabic Site)
  * Repository: rrrtfdeee-art/nsw-ads
- * CDN: https://cdn.jsdelivr.net/gh/rrrtfdeee-art/nsw-ads@main/nsw-ads-ar.js
+ * Version: 1.2.0
  */
 (function() {
     'use strict';
@@ -31,30 +31,41 @@
         return window.innerWidth < 768;
     }
 
-    // 1. توليد رابط إبلاغ مخصص ومملوء ببيانات الإعلان والفصل
-    function getCustomReportUrl(adType, zoneId) {
-        try {
-            var base = CONFIG.reportUrl;
-            var currentUrl = window.location.href;
-            var novelEl = document.getElementById('dynamic-novel-name');
-            var novel = novelEl ? novelEl.textContent.trim() : '';
-            var headingEl = document.querySelector('#reading-content h1, .nsw-chapter-wrapper h1');
-            var chapter = headingEl ? headingEl.textContent.trim() : (document.title || '');
+    // 1. توليد رابط إبلاغ ثلاثي الحماية (Query + Hash + LocalStorage) لمنع مسحه بواسطة توجيه بلوجر m=1
+    function prepareAdReportData(adType, zoneId) {
+        var base = CONFIG.reportUrl;
+        var currentUrl = window.location.href;
+        var novelEl = document.getElementById('dynamic-novel-name');
+        var novel = novelEl ? novelEl.textContent.trim() : '';
+        var headingEl = document.querySelector('#reading-content h1, .nsw-chapter-wrapper h1');
+        var chapter = headingEl ? headingEl.textContent.trim() : (document.title || '');
 
-            var query = '?type=ad_report' +
-                '&ad_type=' + encodeURIComponent(adType || 'Banner') +
-                '&zone_id=' + encodeURIComponent(zoneId || '') +
-                '&novel=' + encodeURIComponent(novel) +
-                '&chapter=' + encodeURIComponent(chapter) +
-                '&page_url=' + encodeURIComponent(currentUrl);
+        var reportPayload = {
+            type: 'ad_report',
+            ad_type: adType || 'Banner',
+            zone_id: zoneId || '',
+            novel: novel,
+            chapter: chapter,
+            page_url: currentUrl,
+            timestamp: new Date().toLocaleString('ar-EG')
+        };
 
-            return base + query;
-        } catch(e) {
-            return CONFIG.reportUrl;
-        }
+        var queryStr = 'm=1&type=ad_report' +
+            '&ad_type=' + encodeURIComponent(reportPayload.ad_type) +
+            '&zone_id=' + encodeURIComponent(reportPayload.zone_id) +
+            '&novel=' + encodeURIComponent(reportPayload.novel) +
+            '&chapter=' + encodeURIComponent(reportPayload.chapter) +
+            '&page_url=' + encodeURIComponent(reportPayload.page_url);
+
+        var hashStr = 'ad_report_data=' + encodeURIComponent(JSON.stringify(reportPayload));
+
+        return {
+            url: base + '?' + queryStr + '#' + hashStr,
+            payload: reportPayload
+        };
     }
 
-    // 2. استايل متوافق مع الثيمات الخمسة وشاشات الهواتف
+    // 2. حقن الاستايل المتوافق مع الثيمات الخمسة ومنع تحول الرابط للأزرق
     function injectStyles() {
         if (document.getElementById('nsw-ad-styles')) return;
         var style = document.createElement('style');
@@ -79,6 +90,7 @@
                 background: rgba(125, 125, 125, 0.04);
                 border: 1px dashed rgba(197, 160, 89, 0.35);
             }
+            /* ثيمات الموقع */
             [data-reader-theme="obsidian"] .nsw-ad-card, [data-theme="obsidian"] .nsw-ad-card {
                 background: #0a0d16;
                 border-color: rgba(197, 160, 89, 0.25);
@@ -119,14 +131,19 @@
                 align-items: center;
                 gap: 4px;
             }
-            .nsw-ad-report-link {
-                color: var(--text-secondary, #888888);
-                text-decoration: underline;
-                font-size: 11px;
-                transition: color 0.2s;
+            /* تثبيت لون رابط الإبلاغ ومنع تحوله للأزرق بعد النقر */
+            .nsw-ad-report-link,
+            .nsw-ad-report-link:link,
+            .nsw-ad-report-link:visited {
+                color: var(--text-secondary, #888888) !important;
+                text-decoration: underline !important;
+                font-size: 11px !important;
+                transition: color 0.2s ease;
+                cursor: pointer;
             }
-            .nsw-ad-report-link:hover {
-                color: #e63946;
+            .nsw-ad-report-link:hover,
+            .nsw-ad-report-link:active {
+                color: #e63946 !important;
             }
             .nsw-ad-content {
                 min-height: 90px;
@@ -178,7 +195,7 @@
         }, 60000);
     }
 
-    // 4. بناء حاوية الإعلان
+    // 4. بناء حاوية الإعلان مع الرابط والـ Storage Handlers
     function createAdBox(type, zoneId) {
         var slot = document.createElement('div');
         slot.className = 'nsw-ad-slot';
@@ -187,16 +204,26 @@
         var card = document.createElement('div');
         card.className = 'nsw-ad-card';
 
-        var reportUrl = getCustomReportUrl(type, zoneId);
+        var reportData = prepareAdReportData(type, zoneId);
 
         var header = document.createElement('div');
         header.className = 'nsw-ad-header';
         header.innerHTML = `
             <span class="nsw-ad-badge">✨ إعلان مدعوم</span>
-            <a href="${reportUrl}" target="_blank" rel="noopener noreferrer" class="nsw-ad-report-link">
+            <a href="${reportData.url}" target="_blank" rel="noopener noreferrer" class="nsw-ad-report-link">
                 هل يبدو الإعلان مضللاً أو مسيئاً؟ أبلغنا
             </a>
         `;
+
+        // حفظ التقرير في localStorage عند النقر كضمان ثالث ضد تحويلات بلوجر
+        var linkEl = header.querySelector('.nsw-ad-report-link');
+        if (linkEl) {
+            linkEl.addEventListener('click', function() {
+                try {
+                    localStorage.setItem('nsw_pending_ad_report', JSON.stringify(reportData.payload));
+                } catch(e) {}
+            });
+        }
 
         var content = document.createElement('div');
         content.className = 'nsw-ad-content';
@@ -208,7 +235,7 @@
         return { slot: slot, content: content };
     }
 
-    // 5. حقن Banner 728x90 للكمبيوتر فقط
+    // 5. حقن Banner 728x90 للكمبيوتر
     function renderBanner728(targetEl) {
         var b = CONFIG.zones.banner728;
         var iframe = document.createElement('iframe');
@@ -254,7 +281,6 @@
             doc.write('<!DOCTYPE html><html><head><base target="_blank">' +
                 '<style>' +
                 'body{margin:0;padding:0;background:transparent;font-family:sans-serif;overflow:hidden;}' +
-                /* كود CSS لعزل الإعلانات الزائدة على شاشات الهاتف */
                 '@media (max-width: 768px) {' +
                 '  [id^="container-"] > *:nth-child(n+2), ' +
                 '  [id^="container-"] > * > *:nth-child(n+2) { display: none !important; }' +
@@ -318,7 +344,7 @@
         }
     }
 
-    // 8. توزيع الإعلانات الذكي: إعلان واحد فقط للهاتف، والتوزيع الكامل للكمبيوتر
+    // 8. توزيع الإعلانات الذكي: تعويض كامل للصيغة الثانية على الهاتف مع الحفاظ على الوتيرة (3 إعلانات بالفصل)
     function injectAdsIntoContainer(container) {
         if (!container || container.getAttribute('data-ads-injected') === 'true') return;
         container.setAttribute('data-ads-injected', 'true');
@@ -330,49 +356,33 @@
         var total = paragraphs.length;
         var mobile = isMobileDevice();
 
-        if (mobile) {
-            // للهاتف: نكتفي بإعلان Native واحد فقط داخل الفصل في المنتصف تماماً (يعرض إعلاناً واحداً فقط)
-            if (total >= 4) {
-                var midPos = Math.floor(total * 0.5);
-                var mBox = createAdBox('Native Banner', CONFIG.zones.nativeBanner.containerId);
-                paragraphs[midPos].after(mBox.slot);
-                observeAd(mBox.slot, function() {
-                    renderNativeBanner(mBox.content);
-                });
-            } else {
-                var navEl = container.querySelector('.nsw-chapter-nav') || document.querySelector('.nsw-chapter-nav');
-                var mBox2 = createAdBox('Native Banner', CONFIG.zones.nativeBanner.containerId);
-                if (navEl && navEl.parentNode) navEl.parentNode.insertBefore(mBox2.slot, navEl);
-                else container.appendChild(mBox2.slot);
-                observeAd(mBox2.slot, function() {
-                    renderNativeBanner(mBox2.content);
-                });
-            }
-            return; // إنهاء التوزيع للهاتف (إعلان واحد فقط بالمجمل)
-        }
-
-        // للكمبيوتر والشاشات الكبيرة: التوزيع الكامل
         if (total >= 5) {
-            // إعلان 1: Native Banner بعد ثلث الفصل (يظهر أفقياً 4 بطاقات)
+            // الإعلان الأول: بعد ثلث الفصل (33%)
             var pos1 = Math.floor(total * 0.33);
-            var box1 = createAdBox('Native Banner', CONFIG.zones.nativeBanner.containerId);
+            var box1 = createAdBox('Native Banner #1', CONFIG.zones.nativeBanner.containerId);
             paragraphs[pos1].after(box1.slot);
             observeAd(box1.slot, function() {
                 renderNativeBanner(box1.content);
             });
 
-            // إعلان 2: Banner 728x90 بعد ثلثي الفصل
-            if (total >= 12) {
-                var pos2 = Math.floor(total * 0.68);
-                var box2 = createAdBox('Banner 728x90', CONFIG.zones.banner728.key);
+            // الإعلان الثاني: بعد ثلثي الفصل (66%)
+            // على الكمبيوتر: يعرض Banner 728x90
+            // على الهاتف: يعوضه تلقائياً بإعلان Native متجاوب نظيف حتى لا تنقص وتيرة الأرباح
+            if (total >= 11) {
+                var pos2 = Math.floor(total * 0.66);
+                var box2 = createAdBox(mobile ? 'Native Banner #2' : 'Banner 728x90', mobile ? CONFIG.zones.nativeBanner.containerId : CONFIG.zones.banner728.key);
                 paragraphs[pos2].after(box2.slot);
                 observeAd(box2.slot, function() {
-                    renderBanner728(box2.content);
+                    if (mobile) {
+                        renderNativeBanner(box2.content);
+                    } else {
+                        renderBanner728(box2.content);
+                    }
                 });
             }
         }
 
-        // إعلان 3: قبل التنقل بنهاية الفصل
+        // الإعلان الثالث: قبل الانتقال في نهاية الفصل (القراءة اللانهائية)
         var nav = container.querySelector('.nsw-chapter-nav') || document.querySelector('.nsw-chapter-nav');
         var transBox = createAdBox('Native Banner (Transition)', CONFIG.zones.nativeBanner.containerId);
         if (nav && nav.parentNode) {
