@@ -8,7 +8,7 @@
 
     var CONFIG = {
         site: 'en',
-        reportUrl: '/p/feedback.html',
+        reportUrl: 'https://en.novelskyworld.com/p/feedback.html',
         socialBarIntervalMin: 10,
         zones: {
             socialBar: {
@@ -26,6 +26,28 @@
             }
         }
     };
+
+    function getCustomReportUrl(adType, zoneId) {
+        try {
+            var base = CONFIG.reportUrl;
+            var currentUrl = window.location.href;
+            var novelEl = document.getElementById('dynamic-novel-name');
+            var novel = novelEl ? novelEl.textContent.trim() : '';
+            var headingEl = document.querySelector('#reading-content h1, .nsw-chapter-wrapper h1');
+            var chapter = headingEl ? headingEl.textContent.trim() : (document.title || '');
+
+            var query = '?type=ad_report' +
+                '&ad_type=' + encodeURIComponent(adType || 'Banner') +
+                '&zone_id=' + encodeURIComponent(zoneId || '') +
+                '&novel=' + encodeURIComponent(novel) +
+                '&chapter=' + encodeURIComponent(chapter) +
+                '&page_url=' + encodeURIComponent(currentUrl);
+
+            return base + query;
+        } catch(e) {
+            return CONFIG.reportUrl;
+        }
+    }
 
     function injectStyles() {
         if (document.getElementById('nsw-ad-styles-en')) return;
@@ -153,7 +175,7 @@
         }, 60000);
     }
 
-    function createAdBox(type) {
+    function createAdBox(type, zoneId) {
         var slot = document.createElement('div');
         slot.className = 'nsw-ad-slot';
         slot.setAttribute('data-ad-type', type);
@@ -161,12 +183,14 @@
         var card = document.createElement('div');
         card.className = 'nsw-ad-card';
 
+        var reportUrl = getCustomReportUrl(type, zoneId);
+
         var header = document.createElement('div');
         header.className = 'nsw-ad-header';
         header.innerHTML = `
             <span class="nsw-ad-badge">✨ Sponsored Ad</span>
-            <a href="${CONFIG.reportUrl}" target="_blank" rel="noopener noreferrer" class="nsw-ad-report-link">
-                Report misleading ad
+            <a href="${reportUrl}" target="_blank" rel="noopener noreferrer" class="nsw-ad-report-link">
+                Report misleading or inappropriate ad
             </a>
         `;
 
@@ -274,7 +298,7 @@
         var total = paragraphs.length;
         if (total >= 5) {
             var pos1 = Math.floor(total * 0.33);
-            var box1 = createAdBox('native');
+            var box1 = createAdBox('Native Banner', CONFIG.zones.nativeBanner.containerId);
             paragraphs[pos1].after(box1.slot);
             observeAd(box1.slot, function() {
                 renderNativeBanner(box1.content);
@@ -282,7 +306,7 @@
 
             if (total >= 12) {
                 var pos2 = Math.floor(total * 0.68);
-                var box2 = createAdBox('banner728');
+                var box2 = createAdBox('Banner 728x90', CONFIG.zones.banner728.key);
                 paragraphs[pos2].after(box2.slot);
                 observeAd(box2.slot, function() {
                     renderBanner728(box2.content);
@@ -291,7 +315,7 @@
         }
 
         var nav = container.querySelector('.nsw-chapter-nav') || document.querySelector('.nsw-chapter-nav');
-        var transBox = createAdBox('transition');
+        var transBox = createAdBox('Native Banner (Transition)', CONFIG.zones.nativeBanner.containerId);
         if (nav && nav.parentNode) {
             nav.parentNode.insertBefore(transBox.slot, nav);
         } else {
