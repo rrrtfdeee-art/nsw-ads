@@ -12,24 +12,22 @@
         socialBarIntervalMin: 10,
         zones: {
             socialBar: {
-                id: '28261592',
-                scriptUrl: ''
+                scriptUrl: 'https://pl28362091.profitableratecpmnetwork.com/96/38/ef/9638ef90fde3d0ec9a45da53da3d2b32.js'
             },
             nativeBanner: {
-                id: '28261598',
-                scriptUrl: '',
-                containerId: ''
+                containerId: 'container-f06e3c2f42596de54854e5df61c3e5a9',
+                scriptUrl: 'https://pl28362097.profitableratecpmnetwork.com/f06e3c2f42596de54854e5df61c3e5a9/invoke.js'
             },
             banner728: {
-                id: '28261570',
-                key: '',
+                key: 'c8631902860268441842b82bec7d1375',
                 width: 728,
                 height: 90,
-                scriptUrl: ''
+                scriptUrl: 'https://www.highrevenueformat.com/c8631902860268441842b82bec7d1375/invoke.js'
             }
         }
     };
 
+    // 1. استايل متوافق مع الثيمات الخمسة وشاشات الهواتف
     function injectStyles() {
         if (document.getElementById('nsw-ad-styles')) return;
         var style = document.createElement('style');
@@ -46,7 +44,7 @@
                 display: inline-block;
                 width: 100%;
                 max-width: 760px;
-                padding: 12px 10px 10px;
+                padding: 10px 10px 8px;
                 border-radius: 10px;
                 box-sizing: border-box;
                 position: relative;
@@ -86,6 +84,7 @@
                 padding: 0 4px;
                 color: var(--text-secondary, #888888);
                 direction: rtl;
+                font-family: inherit;
             }
             .nsw-ad-badge {
                 font-weight: 600;
@@ -108,28 +107,42 @@
                 display: flex;
                 align-items: center;
                 justify-content: center;
+                width: 100%;
                 overflow-x: auto;
+                overflow-y: hidden;
                 -webkit-overflow-scrolling: touch;
+            }
+            .nsw-ad-content iframe {
+                border: 0;
+                margin: 0 auto;
+                display: block;
+            }
+            @media (max-width: 768px) {
+                .nsw-ad-slot[data-ad-type="banner728"] .nsw-ad-content iframe {
+                    max-width: 100%;
+                }
             }
         `;
         document.head.appendChild(style);
     }
 
+    // 2. إدارة Social Bar كل 10 دقائق
     function initSocialBar() {
-        if (!CONFIG.zones.socialBar.scriptUrl) return;
+        var url = CONFIG.zones.socialBar.scriptUrl;
+        if (!url) return;
         var STORAGE_KEY = 'nsw_last_socialbar_ts';
         var intervalMs = (CONFIG.socialBarIntervalMin || 10) * 60 * 1000;
-        var now = Date.now();
-        var last = parseInt(localStorage.getItem(STORAGE_KEY) || '0', 10);
 
         function trigger() {
             var s = document.createElement('script');
             s.type = 'text/javascript';
-            s.src = CONFIG.zones.socialBar.scriptUrl;
+            s.src = url;
             document.body.appendChild(s);
             localStorage.setItem(STORAGE_KEY, Date.now().toString());
         }
 
+        var last = parseInt(localStorage.getItem(STORAGE_KEY) || '0', 10);
+        var now = Date.now();
         if (!last || (now - last) >= intervalMs) {
             trigger();
         }
@@ -143,11 +156,11 @@
         }, 60000);
     }
 
-    function createAdBox(type, zoneId) {
+    // 3. بناء حاوية الإعلان
+    function createAdBox(type) {
         var slot = document.createElement('div');
         slot.className = 'nsw-ad-slot';
         slot.setAttribute('data-ad-type', type);
-        slot.setAttribute('data-zone-id', zoneId || '');
 
         var card = document.createElement('div');
         card.className = 'nsw-ad-card';
@@ -163,15 +176,75 @@
 
         var content = document.createElement('div');
         content.className = 'nsw-ad-content';
-        content.id = 'nsw-ad-' + Math.random().toString(36).substring(2, 9);
 
         card.appendChild(header);
         card.appendChild(content);
         slot.appendChild(card);
 
-        return { slot: slot, contentId: content.id };
+        return { slot: slot, content: content };
     }
 
+    // 4. حقن Banner 728x90 داخل iframe منعزل لتفادي تضارب atOptions
+    function renderBanner728(targetEl) {
+        var b = CONFIG.zones.banner728;
+        var iframe = document.createElement('iframe');
+        iframe.width = b.width.toString();
+        iframe.height = b.height.toString();
+        iframe.style.width = b.width + 'px';
+        iframe.style.height = b.height + 'px';
+        iframe.style.maxWidth = '100%';
+        iframe.scrolling = 'no';
+        targetEl.appendChild(iframe);
+
+        try {
+            var doc = iframe.contentWindow.document;
+            doc.open();
+            doc.write('<!DOCTYPE html><html><head><base target="_blank"><style>body{margin:0;padding:0;overflow:hidden;display:flex;justify-content:center;align-items:center;background:transparent;}</style></head><body>' +
+                '<script type="text/javascript">' +
+                'atOptions = {' +
+                "  'key' : '" + b.key + "'," +
+                "  'format' : 'iframe'," +
+                "  'height' : " + b.height + "," +
+                "  'width' : " + b.width + "," +
+                "  'params' : {}" +
+                '};' +
+                '<\/script>' +
+                '<script type="text/javascript" src="' + b.scriptUrl + '"><\/script>' +
+                '</body></html>');
+            doc.close();
+        } catch(e) {}
+    }
+
+    // 5. حقن Native Banner داخل iframe لعزل container ID وتكراره بأمان
+    function renderNativeBanner(targetEl) {
+        var n = CONFIG.zones.nativeBanner;
+        var iframe = document.createElement('iframe');
+        iframe.style.width = '100%';
+        iframe.style.height = '160px';
+        iframe.scrolling = 'no';
+        targetEl.appendChild(iframe);
+
+        try {
+            var doc = iframe.contentWindow.document;
+            doc.open();
+            doc.write('<!DOCTYPE html><html><head><base target="_blank"><style>body{margin:0;padding:0;background:transparent;font-family:sans-serif;}</style></head><body>' +
+                '<script async="async" data-cfasync="false" src="' + n.scriptUrl + '"><\/script>' +
+                '<div id="' + n.containerId + '"></div>' +
+                '<script>' +
+                'var checkHeight = setInterval(function() {' +
+                '  var h = document.body.scrollHeight;' +
+                '  if (h > 50) {' +
+                '    window.frameElement.style.height = (h + 10) + "px";' +
+                '    clearInterval(checkHeight);' +
+                '  }' +
+                '}, 300);' +
+                '<\/script>' +
+                '</body></html>');
+            doc.close();
+        } catch(e) {}
+    }
+
+    // 6. تأخير التحميل (IntersectionObserver)
     var adObserver = null;
     function observeAd(slotElement, renderCallback) {
         if ('IntersectionObserver' in window) {
@@ -197,6 +270,7 @@
         }
     }
 
+    // 7. توزيع الإعلانات على الفقرات
     function injectAdsIntoContainer(container) {
         if (!container || container.getAttribute('data-ads-injected') === 'true') return;
         container.setAttribute('data-ads-injected', 'true');
@@ -206,36 +280,40 @@
         });
 
         var total = paragraphs.length;
-        if (total >= 6) {
+        if (total >= 5) {
+            // إعلان 1: Native Banner بعد ثلث الفصل
             var pos1 = Math.floor(total * 0.33);
-            var box1 = createAdBox('native', CONFIG.zones.nativeBanner.id);
+            var box1 = createAdBox('native');
             paragraphs[pos1].after(box1.slot);
             observeAd(box1.slot, function() {
-                // سيتم تفعيل كود Native Banner هنا
+                renderNativeBanner(box1.content);
             });
 
-            if (total >= 14) {
+            // إعلان 2: Banner 728x90 بعد ثلثي الفصل
+            if (total >= 12) {
                 var pos2 = Math.floor(total * 0.68);
-                var box2 = createAdBox('banner728', CONFIG.zones.banner728.id);
+                var box2 = createAdBox('banner728');
                 paragraphs[pos2].after(box2.slot);
                 observeAd(box2.slot, function() {
-                    // سيتم تفعيل كود Banner 728x90 هنا
+                    renderBanner728(box2.content);
                 });
             }
         }
 
+        // إعلان التنقل: Native Banner قبل التنقل أو في نهاية الفصل
         var nav = container.querySelector('.nsw-chapter-nav') || document.querySelector('.nsw-chapter-nav');
-        var transBox = createAdBox('transition', CONFIG.zones.nativeBanner.id);
+        var transBox = createAdBox('transition');
         if (nav && nav.parentNode) {
             nav.parentNode.insertBefore(transBox.slot, nav);
         } else {
             container.appendChild(transBox.slot);
         }
         observeAd(transBox.slot, function() {
-            // كود إعلان الانتقال بين الفصول
+            renderNativeBanner(transBox.content);
         });
     }
 
+    // 8. تشغيل الفحص ومراقبة القراءة اللانهائية
     function init() {
         injectStyles();
         initSocialBar();
