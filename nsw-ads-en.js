@@ -1,7 +1,7 @@
 /**
  * Novelskyworld - Ad Manager (English Site)
  * Repository: rrrtfdeee-art/nsw-ads
- * CDN: https://cdn.jsdelivr.net/gh/rrrtfdeee-art/nsw-ads@main/nsw-ads-en.js
+ * Version: 1.2.0
  */
 (function() {
     'use strict';
@@ -31,26 +31,37 @@
         return window.innerWidth < 768;
     }
 
-    function getCustomReportUrl(adType, zoneId) {
-        try {
-            var base = CONFIG.reportUrl;
-            var currentUrl = window.location.href;
-            var novelEl = document.getElementById('dynamic-novel-name');
-            var novel = novelEl ? novelEl.textContent.trim() : '';
-            var headingEl = document.querySelector('#reading-content h1, .nsw-chapter-wrapper h1');
-            var chapter = headingEl ? headingEl.textContent.trim() : (document.title || '');
+    function prepareAdReportData(adType, zoneId) {
+        var base = CONFIG.reportUrl;
+        var currentUrl = window.location.href;
+        var novelEl = document.getElementById('dynamic-novel-name');
+        var novel = novelEl ? novelEl.textContent.trim() : '';
+        var headingEl = document.querySelector('#reading-content h1, .nsw-chapter-wrapper h1');
+        var chapter = headingEl ? headingEl.textContent.trim() : (document.title || '');
 
-            var query = '?type=ad_report' +
-                '&ad_type=' + encodeURIComponent(adType || 'Banner') +
-                '&zone_id=' + encodeURIComponent(zoneId || '') +
-                '&novel=' + encodeURIComponent(novel) +
-                '&chapter=' + encodeURIComponent(chapter) +
-                '&page_url=' + encodeURIComponent(currentUrl);
+        var reportPayload = {
+            type: 'ad_report',
+            ad_type: adType || 'Banner',
+            zone_id: zoneId || '',
+            novel: novel,
+            chapter: chapter,
+            page_url: currentUrl,
+            timestamp: new Date().toLocaleString()
+        };
 
-            return base + query;
-        } catch(e) {
-            return CONFIG.reportUrl;
-        }
+        var queryStr = 'm=1&type=ad_report' +
+            '&ad_type=' + encodeURIComponent(reportPayload.ad_type) +
+            '&zone_id=' + encodeURIComponent(reportPayload.zone_id) +
+            '&novel=' + encodeURIComponent(reportPayload.novel) +
+            '&chapter=' + encodeURIComponent(reportPayload.chapter) +
+            '&page_url=' + encodeURIComponent(reportPayload.page_url);
+
+        var hashStr = 'ad_report_data=' + encodeURIComponent(JSON.stringify(reportPayload));
+
+        return {
+            url: base + '?' + queryStr + '#' + hashStr,
+            payload: reportPayload
+        };
     }
 
     function injectStyles() {
@@ -117,14 +128,18 @@
                 align-items: center;
                 gap: 4px;
             }
-            .nsw-ad-report-link {
-                color: var(--text-secondary, #888888);
-                text-decoration: underline;
-                font-size: 11px;
-                transition: color 0.2s;
+            .nsw-ad-report-link,
+            .nsw-ad-report-link:link,
+            .nsw-ad-report-link:visited {
+                color: var(--text-secondary, #888888) !important;
+                text-decoration: underline !important;
+                font-size: 11px !important;
+                transition: color 0.2s ease;
+                cursor: pointer;
             }
-            .nsw-ad-report-link:hover {
-                color: #e63946;
+            .nsw-ad-report-link:hover,
+            .nsw-ad-report-link:active {
+                color: #e63946 !important;
             }
             .nsw-ad-content {
                 min-height: 90px;
@@ -183,16 +198,25 @@
         var card = document.createElement('div');
         card.className = 'nsw-ad-card';
 
-        var reportUrl = getCustomReportUrl(type, zoneId);
+        var reportData = prepareAdReportData(type, zoneId);
 
         var header = document.createElement('div');
         header.className = 'nsw-ad-header';
         header.innerHTML = `
             <span class="nsw-ad-badge">✨ Sponsored Ad</span>
-            <a href="${reportUrl}" target="_blank" rel="noopener noreferrer" class="nsw-ad-report-link">
+            <a href="${reportData.url}" target="_blank" rel="noopener noreferrer" class="nsw-ad-report-link">
                 Report misleading or inappropriate ad
             </a>
         `;
+
+        var linkEl = header.querySelector('.nsw-ad-report-link');
+        if (linkEl) {
+            linkEl.addEventListener('click', function() {
+                try {
+                    localStorage.setItem('nsw_pending_ad_report', JSON.stringify(reportData.payload));
+                } catch(e) {}
+            });
+        }
 
         var content = document.createElement('div');
         content.className = 'nsw-ad-content';
@@ -321,42 +345,24 @@
         var total = paragraphs.length;
         var mobile = isMobileDevice();
 
-        if (mobile) {
-            // Mobile: strictly 1 Native ad in the middle of the chapter (renders only 1 ad item)
-            if (total >= 4) {
-                var midPos = Math.floor(total * 0.5);
-                var mBox = createAdBox('Native Banner', CONFIG.zones.nativeBanner.containerId);
-                paragraphs[midPos].after(mBox.slot);
-                observeAd(mBox.slot, function() {
-                    renderNativeBanner(mBox.content);
-                });
-            } else {
-                var navEl = container.querySelector('.nsw-chapter-nav') || document.querySelector('.nsw-chapter-nav');
-                var mBox2 = createAdBox('Native Banner', CONFIG.zones.nativeBanner.containerId);
-                if (navEl && navEl.parentNode) navEl.parentNode.insertBefore(mBox2.slot, navEl);
-                else container.appendChild(mBox2.slot);
-                observeAd(mBox2.slot, function() {
-                    renderNativeBanner(mBox2.content);
-                });
-            }
-            return;
-        }
-
-        // Desktop: full distribution
         if (total >= 5) {
             var pos1 = Math.floor(total * 0.33);
-            var box1 = createAdBox('Native Banner', CONFIG.zones.nativeBanner.containerId);
+            var box1 = createAdBox('Native Banner #1', CONFIG.zones.nativeBanner.containerId);
             paragraphs[pos1].after(box1.slot);
             observeAd(box1.slot, function() {
                 renderNativeBanner(box1.content);
             });
 
-            if (total >= 12) {
-                var pos2 = Math.floor(total * 0.68);
-                var box2 = createAdBox('Banner 728x90', CONFIG.zones.banner728.key);
+            if (total >= 11) {
+                var pos2 = Math.floor(total * 0.66);
+                var box2 = createAdBox(mobile ? 'Native Banner #2' : 'Banner 728x90', mobile ? CONFIG.zones.nativeBanner.containerId : CONFIG.zones.banner728.key);
                 paragraphs[pos2].after(box2.slot);
                 observeAd(box2.slot, function() {
-                    renderBanner728(box2.content);
+                    if (mobile) {
+                        renderNativeBanner(box2.content);
+                    } else {
+                        renderBanner728(box2.content);
+                    }
                 });
             }
         }
