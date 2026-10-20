@@ -8,7 +8,7 @@
 
     var CONFIG = {
         site: 'ar',
-        reportUrl: '/p/feedback.html',
+        reportUrl: 'https://www.novelskyworld.com/p/feedback.html',
         socialBarIntervalMin: 10,
         zones: {
             socialBar: {
@@ -27,7 +27,30 @@
         }
     };
 
-    // 1. استايل متوافق مع الثيمات الخمسة وشاشات الهواتف
+    // 1. توليد رابط إبلاغ مخصص ومملوء ببيانات الإعلان والفصل
+    function getCustomReportUrl(adType, zoneId) {
+        try {
+            var base = CONFIG.reportUrl;
+            var currentUrl = window.location.href;
+            var novelEl = document.getElementById('dynamic-novel-name');
+            var novel = novelEl ? novelEl.textContent.trim() : '';
+            var headingEl = document.querySelector('#reading-content h1, .nsw-chapter-wrapper h1');
+            var chapter = headingEl ? headingEl.textContent.trim() : (document.title || '');
+
+            var query = '?type=ad_report' +
+                '&ad_type=' + encodeURIComponent(adType || 'Banner') +
+                '&zone_id=' + encodeURIComponent(zoneId || '') +
+                '&novel=' + encodeURIComponent(novel) +
+                '&chapter=' + encodeURIComponent(chapter) +
+                '&page_url=' + encodeURIComponent(currentUrl);
+
+            return base + query;
+        } catch(e) {
+            return CONFIG.reportUrl;
+        }
+    }
+
+    // 2. استايل متوافق مع الثيمات الخمسة وشاشات الهواتف
     function injectStyles() {
         if (document.getElementById('nsw-ad-styles')) return;
         var style = document.createElement('style');
@@ -52,7 +75,6 @@
                 background: rgba(125, 125, 125, 0.04);
                 border: 1px dashed rgba(197, 160, 89, 0.35);
             }
-            /* توافق الثيمات الخمسة */
             [data-reader-theme="obsidian"] .nsw-ad-card, [data-theme="obsidian"] .nsw-ad-card {
                 background: #0a0d16;
                 border-color: rgba(197, 160, 89, 0.25);
@@ -126,7 +148,7 @@
         document.head.appendChild(style);
     }
 
-    // 2. إدارة Social Bar كل 10 دقائق
+    // 3. إدارة Social Bar كل 10 دقائق
     function initSocialBar() {
         var url = CONFIG.zones.socialBar.scriptUrl;
         if (!url) return;
@@ -156,8 +178,8 @@
         }, 60000);
     }
 
-    // 3. بناء حاوية الإعلان
-    function createAdBox(type) {
+    // 4. بناء حاوية الإعلان مع رابط الإبلاغ المخصص
+    function createAdBox(type, zoneId) {
         var slot = document.createElement('div');
         slot.className = 'nsw-ad-slot';
         slot.setAttribute('data-ad-type', type);
@@ -165,11 +187,13 @@
         var card = document.createElement('div');
         card.className = 'nsw-ad-card';
 
+        var reportUrl = getCustomReportUrl(type, zoneId);
+
         var header = document.createElement('div');
         header.className = 'nsw-ad-header';
         header.innerHTML = `
             <span class="nsw-ad-badge">✨ إعلان مدعوم</span>
-            <a href="${CONFIG.reportUrl}" target="_blank" rel="noopener noreferrer" class="nsw-ad-report-link">
+            <a href="${reportUrl}" target="_blank" rel="noopener noreferrer" class="nsw-ad-report-link">
                 هل يبدو الإعلان مضللاً أو مسيئاً؟ أبلغنا
             </a>
         `;
@@ -184,7 +208,7 @@
         return { slot: slot, content: content };
     }
 
-    // 4. حقن Banner 728x90 داخل iframe منعزل لتفادي تضارب atOptions
+    // 5. حقن Banner 728x90 داخل iframe منعزل
     function renderBanner728(targetEl) {
         var b = CONFIG.zones.banner728;
         var iframe = document.createElement('iframe');
@@ -215,7 +239,7 @@
         } catch(e) {}
     }
 
-    // 5. حقن Native Banner داخل iframe لعزل container ID وتكراره بأمان
+    // 6. حقن Native Banner داخل iframe لعزل المعرف
     function renderNativeBanner(targetEl) {
         var n = CONFIG.zones.nativeBanner;
         var iframe = document.createElement('iframe');
@@ -244,7 +268,7 @@
         } catch(e) {}
     }
 
-    // 6. تأخير التحميل (IntersectionObserver)
+    // 7. تأخير التحميل (IntersectionObserver)
     var adObserver = null;
     function observeAd(slotElement, renderCallback) {
         if ('IntersectionObserver' in window) {
@@ -270,7 +294,7 @@
         }
     }
 
-    // 7. توزيع الإعلانات على الفقرات
+    // 8. توزيع الإعلانات على الفقرات
     function injectAdsIntoContainer(container) {
         if (!container || container.getAttribute('data-ads-injected') === 'true') return;
         container.setAttribute('data-ads-injected', 'true');
@@ -281,18 +305,16 @@
 
         var total = paragraphs.length;
         if (total >= 5) {
-            // إعلان 1: Native Banner بعد ثلث الفصل
             var pos1 = Math.floor(total * 0.33);
-            var box1 = createAdBox('native');
+            var box1 = createAdBox('Native Banner', CONFIG.zones.nativeBanner.containerId);
             paragraphs[pos1].after(box1.slot);
             observeAd(box1.slot, function() {
                 renderNativeBanner(box1.content);
             });
 
-            // إعلان 2: Banner 728x90 بعد ثلثي الفصل
             if (total >= 12) {
                 var pos2 = Math.floor(total * 0.68);
-                var box2 = createAdBox('banner728');
+                var box2 = createAdBox('Banner 728x90', CONFIG.zones.banner728.key);
                 paragraphs[pos2].after(box2.slot);
                 observeAd(box2.slot, function() {
                     renderBanner728(box2.content);
@@ -300,9 +322,8 @@
             }
         }
 
-        // إعلان التنقل: Native Banner قبل التنقل أو في نهاية الفصل
         var nav = container.querySelector('.nsw-chapter-nav') || document.querySelector('.nsw-chapter-nav');
-        var transBox = createAdBox('transition');
+        var transBox = createAdBox('Native Banner (Transition)', CONFIG.zones.nativeBanner.containerId);
         if (nav && nav.parentNode) {
             nav.parentNode.insertBefore(transBox.slot, nav);
         } else {
@@ -313,7 +334,6 @@
         });
     }
 
-    // 8. تشغيل الفحص ومراقبة القراءة اللانهائية
     function init() {
         injectStyles();
         initSocialBar();
