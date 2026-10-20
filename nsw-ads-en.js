@@ -12,20 +12,17 @@
         socialBarIntervalMin: 10,
         zones: {
             socialBar: {
-                id: '',
-                scriptUrl: ''
+                scriptUrl: 'https://pl28710870.profitableratecpmnetwork.com/74/a9/7a/74a97a6aac7a963afe4a3aebdca774b5.js'
             },
             nativeBanner: {
-                id: '',
-                scriptUrl: '',
-                containerId: ''
+                containerId: 'container-737f706636a3452ed375e219fab12b06',
+                scriptUrl: 'https://pl31940942.profitableratecpmnetwork.com/737f706636a3452ed375e219fab12b06/invoke.js'
             },
             banner728: {
-                id: '',
-                key: '',
+                key: 'a4206aec18a5e232dba64b5be874ffc8',
                 width: 728,
                 height: 90,
-                scriptUrl: ''
+                scriptUrl: 'https://www.highrevenueformat.com/a4206aec18a5e232dba64b5be874ffc8/invoke.js'
             }
         }
     };
@@ -46,7 +43,7 @@
                 display: inline-block;
                 width: 100%;
                 max-width: 760px;
-                padding: 12px 10px 10px;
+                padding: 10px 10px 8px;
                 border-radius: 10px;
                 box-sizing: border-box;
                 position: relative;
@@ -85,6 +82,7 @@
                 padding: 0 4px;
                 color: var(--text-secondary, #888888);
                 direction: ltr;
+                font-family: inherit;
             }
             .nsw-ad-badge {
                 font-weight: 600;
@@ -107,28 +105,41 @@
                 display: flex;
                 align-items: center;
                 justify-content: center;
+                width: 100%;
                 overflow-x: auto;
+                overflow-y: hidden;
                 -webkit-overflow-scrolling: touch;
+            }
+            .nsw-ad-content iframe {
+                border: 0;
+                margin: 0 auto;
+                display: block;
+            }
+            @media (max-width: 768px) {
+                .nsw-ad-slot[data-ad-type="banner728"] .nsw-ad-content iframe {
+                    max-width: 100%;
+                }
             }
         `;
         document.head.appendChild(style);
     }
 
     function initSocialBar() {
-        if (!CONFIG.zones.socialBar.scriptUrl) return;
+        var url = CONFIG.zones.socialBar.scriptUrl;
+        if (!url) return;
         var STORAGE_KEY = 'nsw_last_socialbar_ts_en';
         var intervalMs = (CONFIG.socialBarIntervalMin || 10) * 60 * 1000;
-        var now = Date.now();
-        var last = parseInt(localStorage.getItem(STORAGE_KEY) || '0', 10);
 
         function trigger() {
             var s = document.createElement('script');
             s.type = 'text/javascript';
-            s.src = CONFIG.zones.socialBar.scriptUrl;
+            s.src = url;
             document.body.appendChild(s);
             localStorage.setItem(STORAGE_KEY, Date.now().toString());
         }
 
+        var last = parseInt(localStorage.getItem(STORAGE_KEY) || '0', 10);
+        var now = Date.now();
         if (!last || (now - last) >= intervalMs) {
             trigger();
         }
@@ -142,11 +153,10 @@
         }, 60000);
     }
 
-    function createAdBox(type, zoneId) {
+    function createAdBox(type) {
         var slot = document.createElement('div');
         slot.className = 'nsw-ad-slot';
         slot.setAttribute('data-ad-type', type);
-        slot.setAttribute('data-zone-id', zoneId || '');
 
         var card = document.createElement('div');
         card.className = 'nsw-ad-card';
@@ -162,13 +172,70 @@
 
         var content = document.createElement('div');
         content.className = 'nsw-ad-content';
-        content.id = 'nsw-ad-en-' + Math.random().toString(36).substring(2, 9);
 
         card.appendChild(header);
         card.appendChild(content);
         slot.appendChild(card);
 
-        return { slot: slot, contentId: content.id };
+        return { slot: slot, content: content };
+    }
+
+    function renderBanner728(targetEl) {
+        var b = CONFIG.zones.banner728;
+        var iframe = document.createElement('iframe');
+        iframe.width = b.width.toString();
+        iframe.height = b.height.toString();
+        iframe.style.width = b.width + 'px';
+        iframe.style.height = b.height + 'px';
+        iframe.style.maxWidth = '100%';
+        iframe.scrolling = 'no';
+        targetEl.appendChild(iframe);
+
+        try {
+            var doc = iframe.contentWindow.document;
+            doc.open();
+            doc.write('<!DOCTYPE html><html><head><base target="_blank"><style>body{margin:0;padding:0;overflow:hidden;display:flex;justify-content:center;align-items:center;background:transparent;}</style></head><body>' +
+                '<script type="text/javascript">' +
+                'atOptions = {' +
+                "  'key' : '" + b.key + "'," +
+                "  'format' : 'iframe'," +
+                "  'height' : " + b.height + "," +
+                "  'width' : " + b.width + "," +
+                "  'params' : {}" +
+                '};' +
+                '<\/script>' +
+                '<script type="text/javascript" src="' + b.scriptUrl + '"><\/script>' +
+                '</body></html>');
+            doc.close();
+        } catch(e) {}
+    }
+
+    function renderNativeBanner(targetEl) {
+        var n = CONFIG.zones.nativeBanner;
+        var iframe = document.createElement('iframe');
+        iframe.style.width = '100%';
+        iframe.style.height = '160px';
+        iframe.scrolling = 'no';
+        targetEl.appendChild(iframe);
+
+        try {
+            var doc = iframe.contentWindow.document;
+            doc.open();
+            doc.write('<!DOCTYPE html><html><head><base target="_blank"><style>body{margin:0;padding:0;background:transparent;font-family:sans-serif;}</style></head><body>' +
+                '<script async="async" data-cfasync="false" src="' + n.scriptUrl + '"><\/script>' +
+                '<div id="' + n.containerId + '"></div>' +
+                '<script>' +
+                'var checkHeight = setInterval(function() {' +
+                '  var h = document.body.scrollHeight;' +
+                '  if (h > 50) {' +
+                '    window.frameElement.style.height = (h + 10) + "px";' +
+                '    clearInterval(checkHeight);' +
+                '  }' +
+                '}, 300);' +
+                '<\/script>' +
+                '</body></html>');
+            doc.close();
+        } catch(e) {}
     }
 
     var adObserver = null;
@@ -205,33 +272,33 @@
         });
 
         var total = paragraphs.length;
-        if (total >= 6) {
+        if (total >= 5) {
             var pos1 = Math.floor(total * 0.33);
-            var box1 = createAdBox('native', CONFIG.zones.nativeBanner.id);
+            var box1 = createAdBox('native');
             paragraphs[pos1].after(box1.slot);
             observeAd(box1.slot, function() {
-                // Native Banner script will load here
+                renderNativeBanner(box1.content);
             });
 
-            if (total >= 14) {
+            if (total >= 12) {
                 var pos2 = Math.floor(total * 0.68);
-                var box2 = createAdBox('banner728', CONFIG.zones.banner728.id);
+                var box2 = createAdBox('banner728');
                 paragraphs[pos2].after(box2.slot);
                 observeAd(box2.slot, function() {
-                    // 728x90 Banner script will load here
+                    renderBanner728(box2.content);
                 });
             }
         }
 
         var nav = container.querySelector('.nsw-chapter-nav') || document.querySelector('.nsw-chapter-nav');
-        var transBox = createAdBox('transition', CONFIG.zones.nativeBanner.id);
+        var transBox = createAdBox('transition');
         if (nav && nav.parentNode) {
             nav.parentNode.insertBefore(transBox.slot, nav);
         } else {
             container.appendChild(transBox.slot);
         }
         observeAd(transBox.slot, function() {
-            // End of chapter transition ad
+            renderNativeBanner(transBox.content);
         });
     }
 
