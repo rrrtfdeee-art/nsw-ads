@@ -1,7 +1,7 @@
 /**
  * Novelskyworld - Ad Manager (English Site)
  * Repository: rrrtfdeee-art/nsw-ads
- * Version: 1.2.0
+ * Version: 1.3.0 - Clean 300x250 Medium Rectangle & 728x90 Leaderboard
  */
 (function() {
     'use strict';
@@ -14,9 +14,11 @@
             socialBar: {
                 scriptUrl: 'https://pl28710870.profitableratecpmnetwork.com/74/a9/7a/74a97a6aac7a963afe4a3aebdca774b5.js'
             },
-            nativeBanner: {
-                containerId: 'container-737f706636a3452ed375e219fab12b06',
-                scriptUrl: 'https://pl31940942.profitableratecpmnetwork.com/737f706636a3452ed375e219fab12b06/invoke.js'
+            banner300: {
+                key: '0cef3c132e24b1f246de071cdc7b7807',
+                width: 300,
+                height: 250,
+                scriptUrl: 'https://bauval.org/22/0cef3c132e24b1f246de071cdc7b7807'
             },
             banner728: {
                 key: 'a4206aec18a5e232dba64b5be874ffc8',
@@ -41,7 +43,7 @@
 
         var reportPayload = {
             type: 'ad_report',
-            ad_type: adType || 'Banner',
+            ad_type: adType || 'Banner 300x250',
             zone_id: zoneId || '',
             novel: novel,
             chapter: chapter,
@@ -71,16 +73,16 @@
         style.textContent = `
             .nsw-ad-slot {
                 display: block;
-                margin: 24px auto;
+                margin: 26px auto;
                 text-align: center;
                 max-width: 100%;
                 clear: both;
             }
             .nsw-ad-card {
                 display: inline-block;
-                width: 100%;
-                max-width: 760px;
-                padding: 10px 10px 8px;
+                width: auto;
+                max-width: 100%;
+                padding: 10px 12px 10px;
                 border-radius: 10px;
                 box-sizing: border-box;
                 position: relative;
@@ -116,10 +118,11 @@
                 justify-content: space-between;
                 font-size: 11.5px;
                 margin-bottom: 8px;
-                padding: 0 4px;
+                padding: 0 2px;
                 color: var(--text-secondary, #888888);
                 direction: ltr;
                 font-family: inherit;
+                gap: 12px;
             }
             .nsw-ad-badge {
                 font-weight: 600;
@@ -127,6 +130,7 @@
                 display: flex;
                 align-items: center;
                 gap: 4px;
+                white-space: nowrap;
             }
             .nsw-ad-report-link,
             .nsw-ad-report-link:link,
@@ -136,26 +140,23 @@
                 font-size: 11px !important;
                 transition: color 0.2s ease;
                 cursor: pointer;
+                white-space: nowrap;
             }
             .nsw-ad-report-link:hover,
             .nsw-ad-report-link:active {
                 color: #e63946 !important;
             }
             .nsw-ad-content {
-                min-height: 90px;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                width: 100%;
-                overflow-x: auto;
-                overflow-y: hidden;
-                -webkit-overflow-scrolling: touch;
+                overflow: hidden;
             }
             .nsw-ad-content iframe {
                 border: 0;
                 margin: 0 auto;
                 display: block;
-                width: 100%;
+                overflow: hidden;
             }
         `;
         document.head.appendChild(style);
@@ -228,15 +229,17 @@
         return { slot: slot, content: content };
     }
 
-    function renderBanner728(targetEl) {
-        var b = CONFIG.zones.banner728;
+    function renderBanner300(targetEl) {
+        var b = CONFIG.zones.banner300;
         var iframe = document.createElement('iframe');
-        iframe.width = b.width.toString();
-        iframe.height = b.height.toString();
-        iframe.style.width = b.width + 'px';
-        iframe.style.height = b.height + 'px';
+        iframe.width = '300';
+        iframe.height = '250';
+        iframe.style.width = '300px';
+        iframe.style.height = '250px';
         iframe.style.maxWidth = '100%';
         iframe.scrolling = 'no';
+        iframe.style.border = '0';
+        iframe.style.overflow = 'hidden';
         targetEl.appendChild(iframe);
 
         try {
@@ -247,8 +250,8 @@
                 'atOptions = {' +
                 "  'key' : '" + b.key + "'," +
                 "  'format' : 'iframe'," +
-                "  'height' : " + b.height + "," +
-                "  'width' : " + b.width + "," +
+                "  'height' : 250," +
+                "  'width' : 300," +
                 "  'params' : {}" +
                 '};' +
                 '<\/script>' +
@@ -258,52 +261,33 @@
         } catch(e) {}
     }
 
-    function renderNativeBanner(targetEl) {
-        var n = CONFIG.zones.nativeBanner;
+    function renderBanner728(targetEl) {
+        var b = CONFIG.zones.banner728;
         var iframe = document.createElement('iframe');
-        iframe.style.width = '100%';
-        iframe.style.height = isMobileDevice() ? '260px' : '170px';
+        iframe.width = '728';
+        iframe.height = '90';
+        iframe.style.width = '728px';
+        iframe.style.height = '90px';
+        iframe.style.maxWidth = '100%';
         iframe.scrolling = 'no';
+        iframe.style.border = '0';
+        iframe.style.overflow = 'hidden';
         targetEl.appendChild(iframe);
 
         try {
             var doc = iframe.contentWindow.document;
             doc.open();
-            doc.write('<!DOCTYPE html><html><head><base target="_blank">' +
-                '<style>' +
-                'body{margin:0;padding:0;background:transparent;font-family:sans-serif;overflow:hidden;}' +
-                '@media (max-width: 768px) {' +
-                '  [id^="container-"] > *:nth-child(n+2), ' +
-                '  [id^="container-"] > * > *:nth-child(n+2) { display: none !important; }' +
-                '}' +
-                '</style></head><body>' +
-                '<script async="async" data-cfasync="false" src="' + n.scriptUrl + '"><\/script>' +
-                '<div id="' + n.containerId + '"></div>' +
-                '<script>' +
-                'var isMobile = (window.parent && window.parent.innerWidth < 768) || (window.innerWidth < 768);' +
-                'var attempts = 0;' +
-                'var checkAd = setInterval(function() {' +
-                '  attempts++;' +
-                '  var cont = document.getElementById("' + n.containerId + '");' +
-                '  if (cont && cont.children.length > 0) {' +
-                '    if (isMobile) {' +
-                '      var ch = Array.from(cont.children);' +
-                '      if (ch.length > 1) {' +
-                '        for (var i = 1; i < ch.length; i++) { ch[i].style.setProperty("display", "none", "important"); }' +
-                '      } else if (ch.length === 1 && ch[0].children.length > 1) {' +
-                '        var sub = Array.from(ch[0].children);' +
-                '        for (var j = 1; j < sub.length; j++) { sub[j].style.setProperty("display", "none", "important"); }' +
-                '      }' +
-                '    }' +
-                '    var h = document.body.scrollHeight;' +
-                '    if (h > 40) {' +
-                '      window.frameElement.style.height = (h + 8) + "px";' +
-                '      if (attempts > 5) clearInterval(checkAd);' +
-                '    }' +
-                '  }' +
-                '  if (attempts > 30) clearInterval(checkAd);' +
-                '}, 250);' +
+            doc.write('<!DOCTYPE html><html><head><base target="_blank"><style>body{margin:0;padding:0;overflow:hidden;display:flex;justify-content:center;align-items:center;background:transparent;}</style></head><body>' +
+                '<script type="text/javascript">' +
+                'atOptions = {' +
+                "  'key' : '" + b.key + "'," +
+                "  'format' : 'iframe'," +
+                "  'height' : 90," +
+                "  'width' : 728," +
+                "  'params' : {}" +
+                '};' +
                 '<\/script>' +
+                '<script type="text/javascript" src="' + b.scriptUrl + '"><\/script>' +
                 '</body></html>');
             doc.close();
         } catch(e) {}
@@ -345,37 +329,59 @@
         var total = paragraphs.length;
         var mobile = isMobileDevice();
 
+        if (mobile) {
+            // Mobile: 1 clean 300x250 ad at middle of chapter
+            if (total >= 4) {
+                var posMid = Math.floor(total * 0.5);
+                var boxM1 = createAdBox('Banner 300x250', CONFIG.zones.banner300.key);
+                paragraphs[posMid].after(boxM1.slot);
+                observeAd(boxM1.slot, function() {
+                    renderBanner300(boxM1.content);
+                });
+            }
+
+            // Clean 300x250 ad before chapter navigation
+            var navM = container.querySelector('.nsw-chapter-nav') || document.querySelector('.nsw-chapter-nav');
+            var transBoxM = createAdBox('Banner 300x250 (Chapter End)', CONFIG.zones.banner300.key);
+            if (navM && navM.parentNode) {
+                navM.parentNode.insertBefore(transBoxM.slot, navM);
+            } else {
+                container.appendChild(transBoxM.slot);
+            }
+            observeAd(transBoxM.slot, function() {
+                renderBanner300(transBoxM.content);
+            });
+            return;
+        }
+
+        // Desktop: Clean 728x90 and 300x250 ads
         if (total >= 5) {
             var pos1 = Math.floor(total * 0.33);
-            var box1 = createAdBox('Native Banner #1', CONFIG.zones.nativeBanner.containerId);
+            var box1 = createAdBox('Banner 728x90', CONFIG.zones.banner728.key);
             paragraphs[pos1].after(box1.slot);
             observeAd(box1.slot, function() {
-                renderNativeBanner(box1.content);
+                renderBanner728(box1.content);
             });
 
             if (total >= 11) {
                 var pos2 = Math.floor(total * 0.66);
-                var box2 = createAdBox(mobile ? 'Native Banner #2' : 'Banner 728x90', mobile ? CONFIG.zones.nativeBanner.containerId : CONFIG.zones.banner728.key);
+                var box2 = createAdBox('Banner 300x250', CONFIG.zones.banner300.key);
                 paragraphs[pos2].after(box2.slot);
                 observeAd(box2.slot, function() {
-                    if (mobile) {
-                        renderNativeBanner(box2.content);
-                    } else {
-                        renderBanner728(box2.content);
-                    }
+                    renderBanner300(box2.content);
                 });
             }
         }
 
         var nav = container.querySelector('.nsw-chapter-nav') || document.querySelector('.nsw-chapter-nav');
-        var transBox = createAdBox('Native Banner (Transition)', CONFIG.zones.nativeBanner.containerId);
+        var transBox = createAdBox('Banner 728x90 (Chapter End)', CONFIG.zones.banner728.key);
         if (nav && nav.parentNode) {
             nav.parentNode.insertBefore(transBox.slot, nav);
         } else {
             container.appendChild(transBox.slot);
         }
         observeAd(transBox.slot, function() {
-            renderNativeBanner(transBox.content);
+            renderBanner728(transBox.content);
         });
     }
 
