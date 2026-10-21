@@ -1,7 +1,7 @@
 /**
  * Novelskyworld - Ad Manager (Arabic Site)
  * Repository: rrrtfdeee-art/nsw-ads
- * Version: 2.0.0 - Clean A-Ads (Privacy-focused, 0 Malware/Popups)
+ * Version: 2.1.0 - Clean A-Ads (Dual Units: In-Chapter + Royal Sticky Anchor with 10-min dismiss)
  */
 (function() {
     'use strict';
@@ -17,8 +17,9 @@
     var CONFIG = {
         site: 'ar',
         reportUrl: 'https://www.novelskyworld.com/p/feedback.html',
-        aadsUnitId: '2459344',
-        aadsSrc: 'https://acceptable.a-ads.com/2459344/?size=Adaptive'
+        bodyUnitId: '2459344',
+        stickyUnitId: '2459346',
+        stickyCooldownMin: 10
     };
 
     function isMobileDevice() {
@@ -36,8 +37,8 @@
 
         var reportPayload = {
             type: 'ad_report',
-            ad_type: adType || 'A-Ads Banner (Adaptive)',
-            zone_id: zoneId || CONFIG.aadsUnitId,
+            ad_type: adType || 'A-Ads Banner',
+            zone_id: zoneId || CONFIG.bodyUnitId,
             novel: novel,
             chapter: chapter,
             page_url: currentUrl,
@@ -59,7 +60,7 @@
         };
     }
 
-    // 2. حقن الاستايل المتوافق مع الثيمات
+    // 2. حقن الاستايل المتوافق مع الثيمات الملكية والشريط العائم
     function injectStyles() {
         if (document.getElementById('nsw-ad-styles')) return;
         var style = document.createElement('style');
@@ -144,11 +145,99 @@
                     min-height: 100px;
                 }
             }
+
+            /* 🌟 الشريط العائم السفلي الملكي (Royal Sticky Anchor Bar) */
+            .nsw-sticky-anchor-bar {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                width: 100%;
+                z-index: 99990;
+                background: rgba(15, 17, 23, 0.95);
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
+                border-top: 1.5px solid rgba(197, 160, 89, 0.4);
+                padding: 4px 8px;
+                box-shadow: 0 -4px 25px rgba(0, 0, 0, 0.45);
+                text-align: center;
+                transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+                box-sizing: border-box;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+            .nsw-sticky-anchor-bar.nsw-sticky-hidden {
+                transform: translateY(125%) !important;
+                pointer-events: none !important;
+            }
+            .nsw-sticky-close-tab {
+                position: absolute;
+                top: -24px;
+                right: 18px;
+                background: rgba(15, 17, 23, 0.95);
+                border: 1px solid rgba(197, 160, 89, 0.45);
+                border-bottom: none;
+                border-radius: 6px 6px 0 0;
+                color: #c5a059;
+                padding: 2px 10px;
+                cursor: pointer;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 11px;
+                font-weight: 700;
+                gap: 5px;
+                box-shadow: 0 -2px 10px rgba(0,0,0,0.25);
+                transition: background 0.2s, color 0.2s;
+                user-select: none;
+            }
+            .nsw-sticky-close-tab:hover {
+                background: #c5a059;
+                color: #0b0e14;
+            }
+            .nsw-sticky-close-tab svg {
+                fill: currentColor;
+                transition: fill 0.2s;
+            }
+            .nsw-sticky-inner {
+                width: 100%;
+                max-width: 728px;
+                min-height: 50px;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+            .nsw-sticky-inner iframe {
+                border: 0;
+                padding: 0;
+                width: 100%;
+                max-width: 728px;
+                height: 60px;
+                min-height: 50px;
+                overflow: hidden;
+                display: block;
+                margin: auto;
+            }
+            @media (max-width: 767px) {
+                .nsw-sticky-anchor-bar {
+                    padding: 3px 4px;
+                }
+                .nsw-sticky-inner iframe {
+                    height: 55px;
+                }
+                .nsw-sticky-close-tab {
+                    right: 10px;
+                    top: -22px;
+                    padding: 2px 8px;
+                    font-size: 10px;
+                }
+            }
         `;
         document.head.appendChild(style);
     }
 
-    // 3. بناء صندوق الإعلان
+    // 3. بناء صناديق إعلانات المتن (الوحدة 2459344)
     function createAdBox(label) {
         var slot = document.createElement('div');
         slot.className = 'nsw-ad-slot';
@@ -157,7 +246,7 @@
         var card = document.createElement('div');
         card.className = 'nsw-ad-card';
 
-        var reportData = prepareAdReportData(label, CONFIG.aadsUnitId);
+        var reportData = prepareAdReportData(label, CONFIG.bodyUnitId);
 
         var header = document.createElement('div');
         header.className = 'nsw-ad-header';
@@ -178,16 +267,16 @@
         return { slot: slot, content: content };
     }
 
-    // 4. حقن البنر المتجاوب A-Ads
-    function renderAAdsBanner(targetEl) {
+    // 4. حقن بنر A-Ads
+    function renderAAdsFrame(targetEl, unitId, minHeight) {
         var iframe = document.createElement('iframe');
-        iframe.setAttribute('data-aa', CONFIG.aadsUnitId);
-        iframe.src = CONFIG.aadsSrc;
+        iframe.setAttribute('data-aa', unitId);
+        iframe.src = 'https://acceptable.a-ads.com/' + unitId + '/?size=Adaptive';
         iframe.style.border = '0';
         iframe.style.padding = '0';
         iframe.style.width = '100%';
         iframe.style.height = 'auto';
-        iframe.style.minHeight = isMobileDevice() ? '100px' : '90px';
+        iframe.style.minHeight = minHeight || (isMobileDevice() ? '100px' : '90px');
         iframe.style.overflow = 'hidden';
         iframe.style.display = 'block';
         iframe.style.margin = 'auto';
@@ -195,7 +284,7 @@
         targetEl.appendChild(iframe);
     }
 
-    // 5. تأخير التحميل (IntersectionObserver 800px)
+    // 5. تأخير التحميل (IntersectionObserver)
     var adObserver = null;
     function observeAd(slotElement, renderCallback) {
         if ('IntersectionObserver' in window) {
@@ -221,7 +310,7 @@
         }
     }
 
-    // 6. توزيع الإعلانات الذكي والنظيف
+    // 6. توزيع إعلانات المتن ونهاية الفصل
     function injectAdsIntoContainer(container) {
         if (!container || container.getAttribute('data-ads-injected') === 'true') return;
         container.setAttribute('data-ads-injected', 'true');
@@ -234,7 +323,7 @@
             var box1 = createAdBox('A-Ads Banner (منتصف الفصل)');
             paragraphs[pos1].after(box1.slot);
             observeAd(box1.slot, function() {
-                renderAAdsBanner(box1.content);
+                renderAAdsFrame(box1.content, CONFIG.bodyUnitId);
             });
 
             if (total >= 12) {
@@ -242,7 +331,7 @@
                 var box2 = createAdBox('A-Ads Banner (الجزء الثاني)');
                 paragraphs[pos2].after(box2.slot);
                 observeAd(box2.slot, function() {
-                    renderAAdsBanner(box2.content);
+                    renderAAdsFrame(box2.content, CONFIG.bodyUnitId);
                 });
             }
         }
@@ -255,12 +344,70 @@
             container.appendChild(transBox.slot);
         }
         observeAd(transBox.slot, function() {
-            renderAAdsBanner(transBox.content);
+            renderAAdsFrame(transBox.content, CONFIG.bodyUnitId);
         });
+    }
+
+    // 7. إدارة الشريط العائم السفلي الذكي (الوحدة 2459346) مع مهلة 10 دقائق
+    function initStickyAnchorBar() {
+        if (document.getElementById('nsw-sticky-anchor')) return;
+
+        var STORAGE_KEY = 'nsw_sticky_hide_until';
+        var cooldownMs = (CONFIG.stickyCooldownMin || 10) * 60 * 1000;
+
+        function isCooldownActive() {
+            try {
+                var until = parseInt(localStorage.getItem(STORAGE_KEY) || '0', 10);
+                return Date.now() < until;
+            } catch(e) {
+                return false;
+            }
+        }
+
+        var anchor = document.createElement('div');
+        anchor.id = 'nsw-sticky-anchor';
+        anchor.className = 'nsw-sticky-anchor-bar' + (isCooldownActive() ? ' nsw-sticky-hidden' : '');
+
+        var closeTab = document.createElement('button');
+        closeTab.className = 'nsw-sticky-close-tab';
+        closeTab.setAttribute('aria-label', 'إغلاق الإعلان مؤقتاً');
+        closeTab.innerHTML = `
+            <svg height="11px" width="11px" viewBox="0 0 490 490">
+                <polygon points="456.851,0 245,212.564 33.149,0 0.708,32.337 212.669,245.004 0.708,457.678 33.149,490 245,277.443 456.851,490 489.292,457.678 277.331,245.004 489.292,32.337"/>
+            </svg>
+            <span>إغلاق</span>
+        `;
+
+        var inner = document.createElement('div');
+        inner.className = 'nsw-sticky-inner';
+
+        anchor.appendChild(closeTab);
+        anchor.appendChild(inner);
+        document.body.appendChild(anchor);
+
+        // حقن الإعلان في الشريط
+        renderAAdsFrame(inner, CONFIG.stickyUnitId, '50px');
+
+        // التعامل مع نقرة الإغلاق
+        closeTab.addEventListener('click', function(e) {
+            e.stopPropagation();
+            anchor.classList.add('nsw-sticky-hidden');
+            try {
+                localStorage.setItem(STORAGE_KEY, (Date.now() + cooldownMs).toString());
+            } catch(err) {}
+        });
+
+        // فحص دوري كل دقيقة لإعادة إظهار الشريط بعد انقضاء الـ 10 دقائق
+        setInterval(function() {
+            if (!isCooldownActive() && anchor.classList.contains('nsw-sticky-hidden')) {
+                anchor.classList.remove('nsw-sticky-hidden');
+            }
+        }, 60000);
     }
 
     function init() {
         injectStyles();
+        initStickyAnchorBar();
 
         var mainBody = document.querySelector('#nsw-text-body, .actual-text, #reading-content');
         if (mainBody) {
