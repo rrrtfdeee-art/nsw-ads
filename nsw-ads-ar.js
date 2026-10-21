@@ -1,14 +1,14 @@
 /**
  * Novelskyworld - Ad Manager (Arabic Site)
  * Repository: rrrtfdeee-art/nsw-ads
- * Version: 1.5.0 - Social Bar Killer Dismissal Guard (10-min strict cooldown)
+ * Version: 2.0.0 - Clean A-Ads (Privacy-focused, 0 Malware/Popups)
  */
 (function() {
     'use strict';
 
     // Early DNS prefetch & preconnect to eliminate ad SSL handshake delay
     try {
-        ['https://bauval.org', 'https://www.highrevenueformat.com'].forEach(function(orig) {
+        ['https://acceptable.a-ads.com', 'https://aads.com'].forEach(function(orig) {
             var d = document.createElement('link'); d.rel = 'dns-prefetch'; d.href = orig; document.head.appendChild(d);
             var p = document.createElement('link'); p.rel = 'preconnect'; p.href = orig; p.crossOrigin = 'anonymous'; document.head.appendChild(p);
         });
@@ -17,31 +17,15 @@
     var CONFIG = {
         site: 'ar',
         reportUrl: 'https://www.novelskyworld.com/p/feedback.html',
-        socialBarIntervalMin: 10,
-        zones: {
-            socialBar: {
-                scriptUrl: 'https://pl28362091.profitableratecpmnetwork.com/96/38/ef/9638ef90fde3d0ec9a45da53da3d2b32.js'
-            },
-            banner300: {
-                key: '723aaf782f630eb06999d9b10006ec20',
-                width: 300,
-                height: 250,
-                scriptUrl: 'https://bauval.org/22/723aaf782f630eb06999d9b10006ec20'
-            },
-            banner728: {
-                key: 'c8631902860268441842b82bec7d1375',
-                width: 728,
-                height: 90,
-                scriptUrl: 'https://www.highrevenueformat.com/c8631902860268441842b82bec7d1375/invoke.js'
-            }
-        }
+        aadsUnitId: '2459344',
+        aadsSrc: 'https://acceptable.a-ads.com/2459344/?size=Adaptive'
     };
 
     function isMobileDevice() {
         return window.innerWidth < 768;
     }
 
-    // 1. توليد رابط إبلاغ ثلاثي الحماية (Query + Hash + LocalStorage)
+    // 1. توليد رابط إبلاغ ثلاثي الحماية
     function prepareAdReportData(adType, zoneId) {
         var base = CONFIG.reportUrl;
         var currentUrl = window.location.href;
@@ -52,8 +36,8 @@
 
         var reportPayload = {
             type: 'ad_report',
-            ad_type: adType || 'Banner 300x250',
-            zone_id: zoneId || '',
+            ad_type: adType || 'A-Ads Banner (Adaptive)',
+            zone_id: zoneId || CONFIG.aadsUnitId,
             novel: novel,
             chapter: chapter,
             page_url: currentUrl,
@@ -75,7 +59,7 @@
         };
     }
 
-    // 2. حقن الاستايل المتوافق مع الثيمات الخمسة
+    // 2. حقن الاستايل المتوافق مع الثيمات
     function injectStyles() {
         if (document.getElementById('nsw-ad-styles')) return;
         var style = document.createElement('style');
@@ -83,292 +67,97 @@
         style.textContent = `
             .nsw-ad-slot {
                 display: block;
-                margin: 26px auto;
+                margin: 28px auto;
                 text-align: center;
                 max-width: 100%;
                 clear: both;
             }
             .nsw-ad-card {
                 display: inline-block;
-                width: auto;
-                max-width: 100%;
-                padding: 10px 12px 10px;
-                border-radius: 10px;
+                width: 100%;
+                max-width: 728px;
+                background: rgba(255, 255, 255, 0.02);
+                border: 1px solid rgba(197, 160, 89, 0.22);
+                border-radius: 12px;
+                padding: 10px 14px 14px 14px;
+                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
                 box-sizing: border-box;
-                position: relative;
-                transition: background-color 0.3s ease, border-color 0.3s ease;
-                background: rgba(125, 125, 125, 0.04);
-                border: 1px dashed rgba(197, 160, 89, 0.35);
+                text-align: center;
+                transition: border-color 0.25s ease;
             }
-            /* ثيمات الموقع */
-            [data-reader-theme="obsidian"] .nsw-ad-card, [data-theme="obsidian"] .nsw-ad-card {
-                background: #0a0d16;
-                border-color: rgba(197, 160, 89, 0.25);
+            .nsw-ad-card:hover {
+                border-color: rgba(197, 160, 89, 0.45);
             }
-            [data-reader-theme="oled"] .nsw-ad-card, [data-theme="oled"] .nsw-ad-card {
-                background: #000000;
-                border-color: #222222;
-            }
-            [data-reader-theme="charcoal"] .nsw-ad-card, [data-theme="charcoal"] .nsw-ad-card {
-                background: #181b22;
-                border-color: #2b3240;
-            }
-            [data-reader-theme="sepia"] .nsw-ad-card, [data-theme="sepia"] .nsw-ad-card {
-                background: #ecdfc4;
-                border-color: #cbbba0;
-            }
-            [data-reader-theme="white"] .nsw-ad-card, [data-theme="white"] .nsw-ad-card {
-                background: #ffffff;
-                border-color: #e5e7eb;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-            }
-
             .nsw-ad-header {
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
-                font-size: 11.5px;
                 margin-bottom: 8px;
-                padding: 0 2px;
-                color: var(--text-secondary, #888888);
-                direction: rtl;
+                padding-bottom: 6px;
+                border-bottom: 1px solid rgba(197, 160, 89, 0.12);
+                font-size: 11px;
                 font-family: inherit;
-                gap: 12px;
             }
             .nsw-ad-badge {
-                font-weight: 600;
-                color: var(--accent-gold, #c5a059);
-                display: flex;
-                align-items: center;
-                gap: 4px;
-                white-space: nowrap;
+                color: #c5a059;
+                font-weight: 700;
+                letter-spacing: 0.5px;
             }
-            .nsw-ad-report-link,
-            .nsw-ad-report-link:link,
-            .nsw-ad-report-link:visited {
-                color: var(--text-secondary, #888888) !important;
-                text-decoration: underline !important;
-                font-size: 11px !important;
+            .nsw-ad-report-link {
+                color: #888888;
+                text-decoration: none;
                 transition: color 0.2s ease;
-                cursor: pointer;
-                white-space: nowrap;
+                font-size: 10.5px;
             }
-            .nsw-ad-report-link:hover,
-            .nsw-ad-report-link:active {
-                color: #e63946 !important;
+            .nsw-ad-report-link:hover {
+                color: #ef4444;
+                text-decoration: underline;
             }
             .nsw-ad-content {
                 display: flex;
-                align-items: center;
                 justify-content: center;
+                align-items: center;
+                min-height: 90px;
+                margin: 0 auto;
+                width: 100%;
                 overflow: hidden;
             }
             .nsw-ad-content iframe {
                 border: 0;
-                margin: 0 auto;
-                display: block;
+                padding: 0;
+                width: 100%;
+                max-width: 728px;
+                height: 90px;
+                min-height: 90px;
                 overflow: hidden;
+                display: block;
+                margin: auto;
+            }
+            @media (max-width: 767px) {
+                .nsw-ad-card {
+                    padding: 8px 10px 10px 10px;
+                    border-radius: 8px;
+                    max-width: 100%;
+                }
+                .nsw-ad-content iframe {
+                    height: 100px;
+                    min-height: 100px;
+                }
             }
         `;
         document.head.appendChild(style);
     }
 
-    // =========================================================================
-    // 3. صائد الإغلاق الذكي وحارس السوشيال بار (Killer Dismissal Guard v2.0)
-    // يسمح بظهور السوشيال بار مرة واحدة فقط كل 10 دقائق.
-    // بمجرد إغلاقه أو انتهاء ظهوره الأول، يُعزل محرك أدستيرا بالكامل ويُمنع التكرار اللانهائي.
-    // =========================================================================
-    function initSocialBar() {
-        var url = CONFIG.zones.socialBar ? CONFIG.zones.socialBar.scriptUrl : '';
-        if (!url) return;
-
-        var COOLDOWN_KEY = 'nsw_sbar_cooldown_until';
-        var intervalMs = (CONFIG.socialBarIntervalMin || 10) * 60 * 1000; // 10 minutes
-        var isSuppressed = false;
-        var activeAdNode = null;
-        var singleImpressionLoaded = false;
-
-        function isCooldownActive() {
-            try {
-                var until = parseInt(localStorage.getItem(COOLDOWN_KEY) || '0', 10);
-                return Date.now() < until;
-            } catch(e) {
-                return false;
-            }
-        }
-
-        function setCooldown() {
-            try {
-                var until = Date.now() + intervalMs;
-                localStorage.setItem(COOLDOWN_KEY, until.toString());
-            } catch(e) {}
-        }
-
-        function injectShieldStyles() {
-            if (document.getElementById('nsw-sbar-shield-css')) return;
-            var st = document.createElement('style');
-            st.id = 'nsw-sbar-shield-css';
-            st.textContent = `
-                body.nsw-sbar-blocked [class*="social-bar"],
-                body.nsw-sbar-blocked [id*="dom3ic"],
-                body.nsw-sbar-blocked [id*="pbpr0"],
-                body.nsw-sbar-blocked [class*="_cepsocb"],
-                body.nsw-sbar-blocked iframe[src*="profitableratecpmnetwork"] {
-                    display: none !important;
-                    visibility: hidden !important;
-                    opacity: 0 !important;
-                    pointer-events: none !important;
-                    max-height: 0 !important;
-                    max-width: 0 !important;
-                    clip: rect(0, 0, 0, 0) !important;
-                }
-            `;
-            document.head.appendChild(st);
-        }
-
-        function activateShield() {
-            isSuppressed = true;
-            document.body.classList.add('nsw-sbar-blocked');
-            purgeAllAdsterraNodes();
-            var scriptEl = document.getElementById('nsw-adsterra-sbar-script');
-            if (scriptEl && scriptEl.parentNode) {
-                scriptEl.parentNode.removeChild(scriptEl);
-            }
-        }
-
-        function deactivateShield() {
-            isSuppressed = false;
-            singleImpressionLoaded = false;
-            document.body.classList.remove('nsw-sbar-blocked');
-        }
-
-        function isAdsterraNode(node) {
-            if (!node || node.nodeType !== 1) return false;
-            var tag = (node.tagName || '').toLowerCase();
-            var cls = (node.className && typeof node.className === 'string') ? node.className : '';
-            var id = (node.id && typeof node.id === 'string') ? node.id : '';
-
-            if (cls.indexOf('social-bar') !== -1 || cls.indexOf('_cepsocb') !== -1) return true;
-            if (id.indexOf('dom3ic') !== -1 || id.indexOf('pbpr0') !== -1 || id.indexOf('s9ifs') !== -1) return true;
-
-            if (tag === 'iframe') {
-                var src = node.getAttribute('src') || '';
-                if (src.indexOf('profitableratecpmnetwork') !== -1) return true;
-                var st = node.getAttribute('style') || '';
-                if (st.indexOf('fixed') !== -1 && (st.indexOf('214748364') !== -1 || st.indexOf('z-index') !== -1)) return true;
-            }
-
-            if (tag === 'div') {
-                var stDiv = node.getAttribute('style') || '';
-                if (stDiv.indexOf('fixed') !== -1) {
-                    if (node.querySelector && node.querySelector('iframe[src*="profitableratecpmnetwork"], [class*="social-bar"], [id*="dom3ic"]')) {
-                        return true;
-                    }
-                }
-            }
-            return false;
-        }
-
-        function purgeAllAdsterraNodes() {
-            var targets = document.querySelectorAll('[class*="social-bar"], [id*="dom3ic"], [id*="pbpr0"], [class*="_cepsocb"], iframe[src*="profitableratecpmnetwork"]');
-            for (var i = 0; i < targets.length; i++) {
-                try {
-                    targets[i].style.setProperty('display', 'none', 'important');
-                    targets[i].style.setProperty('opacity', '0', 'important');
-                    if (targets[i].parentNode) targets[i].parentNode.removeChild(targets[i]);
-                } catch(e) {}
-            }
-        }
-
-        function armDismissalGuard(container) {
-            if (!container || activeAdNode === container) return;
-            activeAdNode = container;
-
-            // إمساك أي نقرة إغلاق أو تفاعل عبر Capture Phase
-            var onInteraction = function(e) {
-                // إذا تم النقر على زر الإغلاق أو أي عنصر تفاعلي داخل الحاوية
-                setTimeout(function() {
-                    setCooldown();
-                    activateShield();
-                }, 120);
-            };
-
-            container.addEventListener('click', onInteraction, true);
-            container.addEventListener('touchend', onInteraction, true);
-
-            // صمام أمان زمني: بعد 30 ثانية من الظهور الأول، يتم تفعيل المهلة وعزل التكرار
-            setTimeout(function() {
-                if (!isCooldownActive()) {
-                    setCooldown();
-                }
-                activateShield();
-            }, 30000);
-        }
-
-        // مراقب الـ DOM لرصد حاوية أدستيرا وحمايتها من التكرار اللانهائي
-        var guardObserver = new MutationObserver(function(mutations) {
-            for (var m = 0; m < mutations.length; m++) {
-                var added = mutations[m].addedNodes;
-                for (var n = 0; n < added.length; n++) {
-                    var node = added[n];
-                    if (isAdsterraNode(node)) {
-                        if (isSuppressed || isCooldownActive() || singleImpressionLoaded) {
-                            // منع الإعلان الثاني والثالث وحذفهم فوراً
-                            try {
-                                node.style.setProperty('display', 'none', 'important');
-                                if (node.parentNode) node.parentNode.removeChild(node);
-                            } catch(e) {}
-                        } else {
-                            // السماح بالظهور الأول فقط
-                            singleImpressionLoaded = true;
-                            armDismissalGuard(node);
-                        }
-                    }
-                }
-            }
-        });
-
-        injectShieldStyles();
-        guardObserver.observe(document.documentElement || document.body, { childList: true, subtree: true });
-
-        // التحقق الأولي: إذا كانت فترة الـ 10 دقائق نشطة، نمنع التحميل فوراً
-        if (isCooldownActive()) {
-            activateShield();
-            return;
-        }
-
-        // إطلاق الظهور الأول لمرة واحدة
-        function triggerSingleImpression() {
-            if (isCooldownActive()) return;
-            deactivateShield();
-            var s = document.createElement('script');
-            s.id = 'nsw-adsterra-sbar-script';
-            s.type = 'text/javascript';
-            s.src = url;
-            document.body.appendChild(s);
-        }
-
-        triggerSingleImpression();
-
-        // فحص دوري كل دقيقة للتأكد مما إذا انتهت فترة الـ 10 دقائق
-        setInterval(function() {
-            if (!isCooldownActive() && isSuppressed) {
-                deactivateShield();
-                triggerSingleImpression();
-            }
-        }, 60000);
-    }
-
-    // 4. بناء حاوية الإعلان
-    function createAdBox(type, zoneId) {
+    // 3. بناء صندوق الإعلان
+    function createAdBox(label) {
         var slot = document.createElement('div');
         slot.className = 'nsw-ad-slot';
-        slot.setAttribute('data-ad-type', type);
+        slot.setAttribute('data-ad-type', label);
 
         var card = document.createElement('div');
         card.className = 'nsw-ad-card';
 
-        var reportData = prepareAdReportData(type, zoneId);
+        var reportData = prepareAdReportData(label, CONFIG.aadsUnitId);
 
         var header = document.createElement('div');
         header.className = 'nsw-ad-header';
@@ -378,15 +167,6 @@
                 هل يبدو الإعلان مضللاً أو مسيئاً؟ أبلغنا
             </a>
         `;
-
-        var linkEl = header.querySelector('.nsw-ad-report-link');
-        if (linkEl) {
-            linkEl.addEventListener('click', function() {
-                try {
-                    localStorage.setItem('nsw_pending_ad_report', JSON.stringify(reportData.payload));
-                } catch(e) {}
-            });
-        }
 
         var content = document.createElement('div');
         content.className = 'nsw-ad-content';
@@ -398,73 +178,24 @@
         return { slot: slot, content: content };
     }
 
-    // 5. حقن إعلان Banner 300x250 (المقاس النظيف الفردي للهاتف والكمبيوتر)
-    function renderBanner300(targetEl) {
-        var b = CONFIG.zones.banner300;
+    // 4. حقن البنر المتجاوب A-Ads
+    function renderAAdsBanner(targetEl) {
         var iframe = document.createElement('iframe');
-        iframe.width = '300';
-        iframe.height = '250';
-        iframe.style.width = '300px';
-        iframe.style.height = '250px';
-        iframe.style.maxWidth = '100%';
-        iframe.scrolling = 'no';
+        iframe.setAttribute('data-aa', CONFIG.aadsUnitId);
+        iframe.src = CONFIG.aadsSrc;
         iframe.style.border = '0';
+        iframe.style.padding = '0';
+        iframe.style.width = '100%';
+        iframe.style.height = 'auto';
+        iframe.style.minHeight = isMobileDevice() ? '100px' : '90px';
         iframe.style.overflow = 'hidden';
+        iframe.style.display = 'block';
+        iframe.style.margin = 'auto';
+        iframe.scrolling = 'no';
         targetEl.appendChild(iframe);
-
-        try {
-            var doc = iframe.contentWindow.document;
-            doc.open();
-            doc.write('<!DOCTYPE html><html><head><base target="_blank"><style>body{margin:0;padding:0;overflow:hidden;display:flex;justify-content:center;align-items:center;background:transparent;}</style></head><body>' +
-                '<script type="text/javascript">' +
-                'atOptions = {' +
-                "  'key' : '" + b.key + "'," +
-                "  'format' : 'iframe'," +
-                "  'height' : 250," +
-                "  'width' : 300," +
-                "  'params' : {}" +
-                '};' +
-                '<\/script>' +
-                '<script type="text/javascript" src="' + b.scriptUrl + '"><\/script>' +
-                '</body></html>');
-            doc.close();
-        } catch(e) {}
     }
 
-    // 6. حقن Banner 728x90 للكمبيوتر فقط
-    function renderBanner728(targetEl) {
-        var b = CONFIG.zones.banner728;
-        var iframe = document.createElement('iframe');
-        iframe.width = '728';
-        iframe.height = '90';
-        iframe.style.width = '728px';
-        iframe.style.height = '90px';
-        iframe.style.maxWidth = '100%';
-        iframe.scrolling = 'no';
-        iframe.style.border = '0';
-        iframe.style.overflow = 'hidden';
-        targetEl.appendChild(iframe);
-
-        try {
-            var doc = iframe.contentWindow.document;
-            doc.open();
-            doc.write('<!DOCTYPE html><html><head><base target="_blank"><style>body{margin:0;padding:0;overflow:hidden;display:flex;justify-content:center;align-items:center;background:transparent;}</style></head><body>' +
-                '<script type="text/javascript">' +
-                'atOptions = {' +
-                "  'key' : '" + b.key + "'," +
-                "  'format' : 'iframe'," +
-                "  'height' : 90," +
-                "  'width' : 728," +
-                "  'params' : {}" +
-                '};' +
-                '<\/script>' +
-                '<script type="text/javascript" src="' + b.scriptUrl + '"><\/script>' +
-                '</body></html>');
-            doc.close();
-        } catch(e) {}
-    }
-
-    // 7. تأخير التحميل (IntersectionObserver)
+    // 5. تأخير التحميل (IntersectionObserver 800px)
     var adObserver = null;
     function observeAd(slotElement, renderCallback) {
         if ('IntersectionObserver' in window) {
@@ -490,77 +221,46 @@
         }
     }
 
-    // 8. توزيع الإعلانات الاحترافي والنظيف
+    // 6. توزيع الإعلانات الذكي والنظيف
     function injectAdsIntoContainer(container) {
         if (!container || container.getAttribute('data-ads-injected') === 'true') return;
         container.setAttribute('data-ads-injected', 'true');
 
-        var paragraphs = Array.from(container.querySelectorAll('.nsw-paragraph, p')).filter(function(p) {
-            return !p.closest('.nsw-ad-slot') && (p.textContent || '').trim().length > 15;
-        });
-
+        var paragraphs = container.querySelectorAll('p.nsw-paragraph, p');
         var total = paragraphs.length;
-        var mobile = isMobileDevice();
 
-        if (mobile) {
-            // للهاتف: لافتة 300x250 نظيفة واحدة (أو اثنتان إذا كان الفصل طويلاً جداً)
-            if (total >= 4) {
-                var posMid = Math.floor(total * 0.5);
-                var boxM1 = createAdBox('Banner 300x250', CONFIG.zones.banner300.key);
-                paragraphs[posMid].after(boxM1.slot);
-                observeAd(boxM1.slot, function() {
-                    renderBanner300(boxM1.content);
-                });
-            }
-
-            // إعلان نظيف 300x250 قبل أزرار التنقل (نهاية الفصل)
-            var navM = container.querySelector('.nsw-chapter-nav') || document.querySelector('.nsw-chapter-nav');
-            var transBoxM = createAdBox('Banner 300x250 (نهاية الفصل)', CONFIG.zones.banner300.key);
-            if (navM && navM.parentNode) {
-                navM.parentNode.insertBefore(transBoxM.slot, navM);
-            } else {
-                container.appendChild(transBoxM.slot);
-            }
-            observeAd(transBoxM.slot, function() {
-                renderBanner300(transBoxM.content);
-            });
-            return;
-        }
-
-        // للكمبيوتر: لافتات 728x90 و 300x250 الأنيقة
-        if (total >= 5) {
-            var pos1 = Math.floor(total * 0.33);
-            var box1 = createAdBox('Banner 728x90', CONFIG.zones.banner728.key);
+        if (total >= 4) {
+            var pos1 = Math.min(Math.floor(total * 0.33), 10);
+            var box1 = createAdBox('A-Ads Banner (منتصف الفصل)');
             paragraphs[pos1].after(box1.slot);
             observeAd(box1.slot, function() {
-                renderBanner728(box1.content);
+                renderAAdsBanner(box1.content);
             });
 
-            if (total >= 11) {
+            if (total >= 12) {
                 var pos2 = Math.floor(total * 0.66);
-                var box2 = createAdBox('Banner 300x250', CONFIG.zones.banner300.key);
+                var box2 = createAdBox('A-Ads Banner (الجزء الثاني)');
                 paragraphs[pos2].after(box2.slot);
                 observeAd(box2.slot, function() {
-                    renderBanner300(box2.content);
+                    renderAAdsBanner(box2.content);
                 });
             }
         }
 
         var nav = container.querySelector('.nsw-chapter-nav') || document.querySelector('.nsw-chapter-nav');
-        var transBox = createAdBox('Banner 728x90 (نهاية الفصل)', CONFIG.zones.banner728.key);
+        var transBox = createAdBox('A-Ads Banner (نهاية الفصل)');
         if (nav && nav.parentNode) {
             nav.parentNode.insertBefore(transBox.slot, nav);
         } else {
             container.appendChild(transBox.slot);
         }
         observeAd(transBox.slot, function() {
-            renderBanner728(transBox.content);
+            renderAAdsBanner(transBox.content);
         });
     }
 
     function init() {
         injectStyles();
-        initSocialBar();
 
         var mainBody = document.querySelector('#nsw-text-body, .actual-text, #reading-content');
         if (mainBody) {
