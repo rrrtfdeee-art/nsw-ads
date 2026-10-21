@@ -1,7 +1,7 @@
 /**
  * Novelskyworld - Ad Manager (English Site)
  * Repository: rrrtfdeee-art/nsw-ads
- * Version: 1.4.0 - Instant Preload (800px rootMargin) & Preconnect - Clean 300x250 Medium Rectangle & 728x90 Leaderboard
+ * Version: 1.5.0 - Social Bar Killer Dismissal Guard (10-min strict cooldown)
  */
 (function() {
     'use strict';
@@ -170,31 +170,188 @@
         document.head.appendChild(style);
     }
 
+    // =========================================================================
+    // 3. صائد الإغلاق الذكي وحارس السوشيال بار (Killer Dismissal Guard v2.0)
+    // يسمح بظهور السوشيال بار مرة واحدة فقط كل 10 دقائق.
+    // بمجرد إغلاقه أو انتهاء ظهوره الأول، يُعزل محرك أدستيرا بالكامل ويُمنع التكرار اللانهائي.
+    // =========================================================================
     function initSocialBar() {
-        var url = CONFIG.zones.socialBar.scriptUrl;
+        var url = CONFIG.zones.socialBar ? CONFIG.zones.socialBar.scriptUrl : '';
         if (!url) return;
-        var STORAGE_KEY = 'nsw_last_socialbar_ts_en';
-        var intervalMs = (CONFIG.socialBarIntervalMin || 10) * 60 * 1000;
 
-        function trigger() {
+        var COOLDOWN_KEY = 'nsw_sbar_cooldown_until_en';
+        var intervalMs = (CONFIG.socialBarIntervalMin || 10) * 60 * 1000; // 10 minutes
+        var isSuppressed = false;
+        var activeAdNode = null;
+        var singleImpressionLoaded = false;
+
+        function isCooldownActive() {
+            try {
+                var until = parseInt(localStorage.getItem(COOLDOWN_KEY) || '0', 10);
+                return Date.now() < until;
+            } catch(e) {
+                return false;
+            }
+        }
+
+        function setCooldown() {
+            try {
+                var until = Date.now() + intervalMs;
+                localStorage.setItem(COOLDOWN_KEY, until.toString());
+            } catch(e) {}
+        }
+
+        function injectShieldStyles() {
+            if (document.getElementById('nsw-sbar-shield-css')) return;
+            var st = document.createElement('style');
+            st.id = 'nsw-sbar-shield-css';
+            st.textContent = `
+                body.nsw-sbar-blocked [class*="social-bar"],
+                body.nsw-sbar-blocked [id*="dom3ic"],
+                body.nsw-sbar-blocked [id*="pbpr0"],
+                body.nsw-sbar-blocked [class*="_cepsocb"],
+                body.nsw-sbar-blocked iframe[src*="profitableratecpmnetwork"] {
+                    display: none !important;
+                    visibility: hidden !important;
+                    opacity: 0 !important;
+                    pointer-events: none !important;
+                    max-height: 0 !important;
+                    max-width: 0 !important;
+                    clip: rect(0, 0, 0, 0) !important;
+                }
+            `;
+            document.head.appendChild(st);
+        }
+
+        function activateShield() {
+            isSuppressed = true;
+            document.body.classList.add('nsw-sbar-blocked');
+            purgeAllAdsterraNodes();
+            var scriptEl = document.getElementById('nsw-adsterra-sbar-script');
+            if (scriptEl && scriptEl.parentNode) {
+                scriptEl.parentNode.removeChild(scriptEl);
+            }
+        }
+
+        function deactivateShield() {
+            isSuppressed = false;
+            singleImpressionLoaded = false;
+            document.body.classList.remove('nsw-sbar-blocked');
+        }
+
+        function isAdsterraNode(node) {
+            if (!node || node.nodeType !== 1) return false;
+            var tag = (node.tagName || '').toLowerCase();
+            var cls = (node.className && typeof node.className === 'string') ? node.className : '';
+            var id = (node.id && typeof node.id === 'string') ? node.id : '';
+
+            if (cls.indexOf('social-bar') !== -1 || cls.indexOf('_cepsocb') !== -1) return true;
+            if (id.indexOf('dom3ic') !== -1 || id.indexOf('pbpr0') !== -1 || id.indexOf('s9ifs') !== -1) return true;
+
+            if (tag === 'iframe') {
+                var src = node.getAttribute('src') || '';
+                if (src.indexOf('profitableratecpmnetwork') !== -1) return true;
+                var st = node.getAttribute('style') || '';
+                if (st.indexOf('fixed') !== -1 && (st.indexOf('214748364') !== -1 || st.indexOf('z-index') !== -1)) return true;
+            }
+
+            if (tag === 'div') {
+                var stDiv = node.getAttribute('style') || '';
+                if (stDiv.indexOf('fixed') !== -1) {
+                    if (node.querySelector && node.querySelector('iframe[src*="profitableratecpmnetwork"], [class*="social-bar"], [id*="dom3ic"]')) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        function purgeAllAdsterraNodes() {
+            var targets = document.querySelectorAll('[class*="social-bar"], [id*="dom3ic"], [id*="pbpr0"], [class*="_cepsocb"], iframe[src*="profitableratecpmnetwork"]');
+            for (var i = 0; i < targets.length; i++) {
+                try {
+                    targets[i].style.setProperty('display', 'none', 'important');
+                    targets[i].style.setProperty('opacity', '0', 'important');
+                    if (targets[i].parentNode) targets[i].parentNode.removeChild(targets[i]);
+                } catch(e) {}
+            }
+        }
+
+        function armDismissalGuard(container) {
+            if (!container || activeAdNode === container) return;
+            activeAdNode = container;
+
+            // إمساك أي نقرة إغلاق أو تفاعل عبر Capture Phase
+            var onInteraction = function(e) {
+                // إذا تم النقر على زر الإغلاق أو أي عنصر تفاعلي داخل الحاوية
+                setTimeout(function() {
+                    setCooldown();
+                    activateShield();
+                }, 120);
+            };
+
+            container.addEventListener('click', onInteraction, true);
+            container.addEventListener('touchend', onInteraction, true);
+
+            // صمام أمان زمني: بعد 30 ثانية من الظهور الأول، يتم تفعيل المهلة وعزل التكرار
+            setTimeout(function() {
+                if (!isCooldownActive()) {
+                    setCooldown();
+                }
+                activateShield();
+            }, 30000);
+        }
+
+        // مراقب الـ DOM لرصد حاوية أدستيرا وحمايتها من التكرار اللانهائي
+        var guardObserver = new MutationObserver(function(mutations) {
+            for (var m = 0; m < mutations.length; m++) {
+                var added = mutations[m].addedNodes;
+                for (var n = 0; n < added.length; n++) {
+                    var node = added[n];
+                    if (isAdsterraNode(node)) {
+                        if (isSuppressed || isCooldownActive() || singleImpressionLoaded) {
+                            // منع الإعلان الثاني والثالث وحذفهم فوراً
+                            try {
+                                node.style.setProperty('display', 'none', 'important');
+                                if (node.parentNode) node.parentNode.removeChild(node);
+                            } catch(e) {}
+                        } else {
+                            // السماح بالظهور الأول فقط
+                            singleImpressionLoaded = true;
+                            armDismissalGuard(node);
+                        }
+                    }
+                }
+            }
+        });
+
+        injectShieldStyles();
+        guardObserver.observe(document.documentElement || document.body, { childList: true, subtree: true });
+
+        // التحقق الأولي: إذا كانت فترة الـ 10 دقائق نشطة، نمنع التحميل فوراً
+        if (isCooldownActive()) {
+            activateShield();
+            return;
+        }
+
+        // إطلاق الظهور الأول لمرة واحدة
+        function triggerSingleImpression() {
+            if (isCooldownActive()) return;
+            deactivateShield();
             var s = document.createElement('script');
+            s.id = 'nsw-adsterra-sbar-script';
             s.type = 'text/javascript';
             s.src = url;
             document.body.appendChild(s);
-            localStorage.setItem(STORAGE_KEY, Date.now().toString());
         }
 
-        var last = parseInt(localStorage.getItem(STORAGE_KEY) || '0', 10);
-        var now = Date.now();
-        if (!last || (now - last) >= intervalMs) {
-            trigger();
-        }
+        triggerSingleImpression();
 
+        // فحص دوري كل دقيقة للتأكد مما إذا انتهت فترة الـ 10 دقائق
         setInterval(function() {
-            var curNow = Date.now();
-            var curLast = parseInt(localStorage.getItem(STORAGE_KEY) || '0', 10);
-            if ((curNow - curLast) >= intervalMs) {
-                trigger();
+            if (!isCooldownActive() && isSuppressed) {
+                deactivateShield();
+                triggerSingleImpression();
             }
         }, 60000);
     }
