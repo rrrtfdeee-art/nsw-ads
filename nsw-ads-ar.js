@@ -1,10 +1,18 @@
 /**
  * Novelskyworld - Ad Manager (Arabic Site)
  * Repository: rrrtfdeee-art/nsw-ads
- * Version: 1.3.0 - Clean 300x250 Medium Rectangle & 728x90 Leaderboard
+ * Version: 1.4.0 - Instant Preload (800px rootMargin) & Preconnect - Clean 300x250 Medium Rectangle & 728x90 Leaderboard
  */
 (function() {
     'use strict';
+
+    // Early DNS prefetch & preconnect to eliminate ad SSL handshake delay
+    try {
+        ['https://bauval.org', 'https://www.highrevenueformat.com'].forEach(function(orig) {
+            var d = document.createElement('link'); d.rel = 'dns-prefetch'; d.href = orig; document.head.appendChild(d);
+            var p = document.createElement('link'); p.rel = 'preconnect'; p.href = orig; p.crossOrigin = 'anonymous'; document.head.appendChild(p);
+        });
+    } catch(e) {}
 
     var CONFIG = {
         site: 'ar',
@@ -317,7 +325,7 @@
                             adObserver.unobserve(el);
                         }
                     });
-                }, { rootMargin: '250px 0px' });
+                }, { rootMargin: '800px 0px' });
             }
             slotElement._renderCallback = renderCallback;
             adObserver.observe(slotElement);
