@@ -1,7 +1,7 @@
 /**
  * Novelskyworld - Ad Manager (Arabic Site)
  * Repository: rrrtfdeee-art/nsw-ads
- * Version: 1.2.0
+ * Version: 1.3.0 - Clean 300x250 Medium Rectangle & 728x90 Leaderboard
  */
 (function() {
     'use strict';
@@ -14,9 +14,11 @@
             socialBar: {
                 scriptUrl: 'https://pl28362091.profitableratecpmnetwork.com/96/38/ef/9638ef90fde3d0ec9a45da53da3d2b32.js'
             },
-            nativeBanner: {
-                containerId: 'container-f06e3c2f42596de54854e5df61c3e5a9',
-                scriptUrl: 'https://pl28362097.profitableratecpmnetwork.com/f06e3c2f42596de54854e5df61c3e5a9/invoke.js'
+            banner300: {
+                key: '723aaf782f630eb06999d9b10006ec20',
+                width: 300,
+                height: 250,
+                scriptUrl: 'https://bauval.org/22/723aaf782f630eb06999d9b10006ec20'
             },
             banner728: {
                 key: 'c8631902860268441842b82bec7d1375',
@@ -31,7 +33,7 @@
         return window.innerWidth < 768;
     }
 
-    // 1. توليد رابط إبلاغ ثلاثي الحماية (Query + Hash + LocalStorage) لمنع مسحه بواسطة توجيه بلوجر m=1
+    // 1. توليد رابط إبلاغ ثلاثي الحماية (Query + Hash + LocalStorage)
     function prepareAdReportData(adType, zoneId) {
         var base = CONFIG.reportUrl;
         var currentUrl = window.location.href;
@@ -42,7 +44,7 @@
 
         var reportPayload = {
             type: 'ad_report',
-            ad_type: adType || 'Banner',
+            ad_type: adType || 'Banner 300x250',
             zone_id: zoneId || '',
             novel: novel,
             chapter: chapter,
@@ -65,7 +67,7 @@
         };
     }
 
-    // 2. حقن الاستايل المتوافق مع الثيمات الخمسة ومنع تحول الرابط للأزرق
+    // 2. حقن الاستايل المتوافق مع الثيمات الخمسة
     function injectStyles() {
         if (document.getElementById('nsw-ad-styles')) return;
         var style = document.createElement('style');
@@ -73,16 +75,16 @@
         style.textContent = `
             .nsw-ad-slot {
                 display: block;
-                margin: 24px auto;
+                margin: 26px auto;
                 text-align: center;
                 max-width: 100%;
                 clear: both;
             }
             .nsw-ad-card {
                 display: inline-block;
-                width: 100%;
-                max-width: 760px;
-                padding: 10px 10px 8px;
+                width: auto;
+                max-width: 100%;
+                padding: 10px 12px 10px;
                 border-radius: 10px;
                 box-sizing: border-box;
                 position: relative;
@@ -119,10 +121,11 @@
                 justify-content: space-between;
                 font-size: 11.5px;
                 margin-bottom: 8px;
-                padding: 0 4px;
+                padding: 0 2px;
                 color: var(--text-secondary, #888888);
                 direction: rtl;
                 font-family: inherit;
+                gap: 12px;
             }
             .nsw-ad-badge {
                 font-weight: 600;
@@ -130,8 +133,8 @@
                 display: flex;
                 align-items: center;
                 gap: 4px;
+                white-space: nowrap;
             }
-            /* تثبيت لون رابط الإبلاغ ومنع تحوله للأزرق بعد النقر */
             .nsw-ad-report-link,
             .nsw-ad-report-link:link,
             .nsw-ad-report-link:visited {
@@ -140,26 +143,23 @@
                 font-size: 11px !important;
                 transition: color 0.2s ease;
                 cursor: pointer;
+                white-space: nowrap;
             }
             .nsw-ad-report-link:hover,
             .nsw-ad-report-link:active {
                 color: #e63946 !important;
             }
             .nsw-ad-content {
-                min-height: 90px;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                width: 100%;
-                overflow-x: auto;
-                overflow-y: hidden;
-                -webkit-overflow-scrolling: touch;
+                overflow: hidden;
             }
             .nsw-ad-content iframe {
                 border: 0;
                 margin: 0 auto;
                 display: block;
-                width: 100%;
+                overflow: hidden;
             }
         `;
         document.head.appendChild(style);
@@ -195,7 +195,7 @@
         }, 60000);
     }
 
-    // 4. بناء حاوية الإعلان مع الرابط والـ Storage Handlers
+    // 4. بناء حاوية الإعلان
     function createAdBox(type, zoneId) {
         var slot = document.createElement('div');
         slot.className = 'nsw-ad-slot';
@@ -215,7 +215,6 @@
             </a>
         `;
 
-        // حفظ التقرير في localStorage عند النقر كضمان ثالث ضد تحويلات بلوجر
         var linkEl = header.querySelector('.nsw-ad-report-link');
         if (linkEl) {
             linkEl.addEventListener('click', function() {
@@ -235,16 +234,18 @@
         return { slot: slot, content: content };
     }
 
-    // 5. حقن Banner 728x90 للكمبيوتر
-    function renderBanner728(targetEl) {
-        var b = CONFIG.zones.banner728;
+    // 5. حقن إعلان Banner 300x250 (المقاس النظيف الفردي للهاتف والكمبيوتر)
+    function renderBanner300(targetEl) {
+        var b = CONFIG.zones.banner300;
         var iframe = document.createElement('iframe');
-        iframe.width = b.width.toString();
-        iframe.height = b.height.toString();
-        iframe.style.width = b.width + 'px';
-        iframe.style.height = b.height + 'px';
+        iframe.width = '300';
+        iframe.height = '250';
+        iframe.style.width = '300px';
+        iframe.style.height = '250px';
         iframe.style.maxWidth = '100%';
         iframe.scrolling = 'no';
+        iframe.style.border = '0';
+        iframe.style.overflow = 'hidden';
         targetEl.appendChild(iframe);
 
         try {
@@ -255,8 +256,8 @@
                 'atOptions = {' +
                 "  'key' : '" + b.key + "'," +
                 "  'format' : 'iframe'," +
-                "  'height' : " + b.height + "," +
-                "  'width' : " + b.width + "," +
+                "  'height' : 250," +
+                "  'width' : 300," +
                 "  'params' : {}" +
                 '};' +
                 '<\/script>' +
@@ -266,53 +267,34 @@
         } catch(e) {}
     }
 
-    // 6. حقن Native Banner (على الهاتف يظهر إعلان 1 فقط، وعلى الكمبيوتر تظهر الـ 4 إعلانات أفقياً)
-    function renderNativeBanner(targetEl) {
-        var n = CONFIG.zones.nativeBanner;
+    // 6. حقن Banner 728x90 للكمبيوتر فقط
+    function renderBanner728(targetEl) {
+        var b = CONFIG.zones.banner728;
         var iframe = document.createElement('iframe');
-        iframe.style.width = '100%';
-        iframe.style.height = isMobileDevice() ? '260px' : '170px';
+        iframe.width = '728';
+        iframe.height = '90';
+        iframe.style.width = '728px';
+        iframe.style.height = '90px';
+        iframe.style.maxWidth = '100%';
         iframe.scrolling = 'no';
+        iframe.style.border = '0';
+        iframe.style.overflow = 'hidden';
         targetEl.appendChild(iframe);
 
         try {
             var doc = iframe.contentWindow.document;
             doc.open();
-            doc.write('<!DOCTYPE html><html><head><base target="_blank">' +
-                '<style>' +
-                'body{margin:0;padding:0;background:transparent;font-family:sans-serif;overflow:hidden;}' +
-                '@media (max-width: 768px) {' +
-                '  [id^="container-"] > *:nth-child(n+2), ' +
-                '  [id^="container-"] > * > *:nth-child(n+2) { display: none !important; }' +
-                '}' +
-                '</style></head><body>' +
-                '<script async="async" data-cfasync="false" src="' + n.scriptUrl + '"><\/script>' +
-                '<div id="' + n.containerId + '"></div>' +
-                '<script>' +
-                'var isMobile = (window.parent && window.parent.innerWidth < 768) || (window.innerWidth < 768);' +
-                'var attempts = 0;' +
-                'var checkAd = setInterval(function() {' +
-                '  attempts++;' +
-                '  var cont = document.getElementById("' + n.containerId + '");' +
-                '  if (cont && cont.children.length > 0) {' +
-                '    if (isMobile) {' +
-                '      var ch = Array.from(cont.children);' +
-                '      if (ch.length > 1) {' +
-                '        for (var i = 1; i < ch.length; i++) { ch[i].style.setProperty("display", "none", "important"); }' +
-                '      } else if (ch.length === 1 && ch[0].children.length > 1) {' +
-                '        var sub = Array.from(ch[0].children);' +
-                '        for (var j = 1; j < sub.length; j++) { sub[j].style.setProperty("display", "none", "important"); }' +
-                '      }' +
-                '    }' +
-                '    var h = document.body.scrollHeight;' +
-                '    if (h > 40) {' +
-                '      window.frameElement.style.height = (h + 8) + "px";' +
-                '      if (attempts > 5) clearInterval(checkAd);' +
-                '    }' +
-                '  }' +
-                '  if (attempts > 30) clearInterval(checkAd);' +
-                '}, 250);' +
+            doc.write('<!DOCTYPE html><html><head><base target="_blank"><style>body{margin:0;padding:0;overflow:hidden;display:flex;justify-content:center;align-items:center;background:transparent;}</style></head><body>' +
+                '<script type="text/javascript">' +
+                'atOptions = {' +
+                "  'key' : '" + b.key + "'," +
+                "  'format' : 'iframe'," +
+                "  'height' : 90," +
+                "  'width' : 728," +
+                "  'params' : {}" +
+                '};' +
                 '<\/script>' +
+                '<script type="text/javascript" src="' + b.scriptUrl + '"><\/script>' +
                 '</body></html>');
             doc.close();
         } catch(e) {}
@@ -344,7 +326,7 @@
         }
     }
 
-    // 8. توزيع الإعلانات الذكي: تعويض كامل للصيغة الثانية على الهاتف مع الحفاظ على الوتيرة (3 إعلانات بالفصل)
+    // 8. توزيع الإعلانات الاحترافي والنظيف
     function injectAdsIntoContainer(container) {
         if (!container || container.getAttribute('data-ads-injected') === 'true') return;
         container.setAttribute('data-ads-injected', 'true');
@@ -356,42 +338,59 @@
         var total = paragraphs.length;
         var mobile = isMobileDevice();
 
+        if (mobile) {
+            // للهاتف: لافتة 300x250 نظيفة واحدة (أو اثنتان إذا كان الفصل طويلاً جداً)
+            if (total >= 4) {
+                var posMid = Math.floor(total * 0.5);
+                var boxM1 = createAdBox('Banner 300x250', CONFIG.zones.banner300.key);
+                paragraphs[posMid].after(boxM1.slot);
+                observeAd(boxM1.slot, function() {
+                    renderBanner300(boxM1.content);
+                });
+            }
+
+            // إعلان نظيف 300x250 قبل أزرار التنقل (نهاية الفصل)
+            var navM = container.querySelector('.nsw-chapter-nav') || document.querySelector('.nsw-chapter-nav');
+            var transBoxM = createAdBox('Banner 300x250 (نهاية الفصل)', CONFIG.zones.banner300.key);
+            if (navM && navM.parentNode) {
+                navM.parentNode.insertBefore(transBoxM.slot, navM);
+            } else {
+                container.appendChild(transBoxM.slot);
+            }
+            observeAd(transBoxM.slot, function() {
+                renderBanner300(transBoxM.content);
+            });
+            return;
+        }
+
+        // للكمبيوتر: لافتات 728x90 و 300x250 الأنيقة
         if (total >= 5) {
-            // الإعلان الأول: بعد ثلث الفصل (33%)
             var pos1 = Math.floor(total * 0.33);
-            var box1 = createAdBox('Native Banner #1', CONFIG.zones.nativeBanner.containerId);
+            var box1 = createAdBox('Banner 728x90', CONFIG.zones.banner728.key);
             paragraphs[pos1].after(box1.slot);
             observeAd(box1.slot, function() {
-                renderNativeBanner(box1.content);
+                renderBanner728(box1.content);
             });
 
-            // الإعلان الثاني: بعد ثلثي الفصل (66%)
-            // على الكمبيوتر: يعرض Banner 728x90
-            // على الهاتف: يعوضه تلقائياً بإعلان Native متجاوب نظيف حتى لا تنقص وتيرة الأرباح
             if (total >= 11) {
                 var pos2 = Math.floor(total * 0.66);
-                var box2 = createAdBox(mobile ? 'Native Banner #2' : 'Banner 728x90', mobile ? CONFIG.zones.nativeBanner.containerId : CONFIG.zones.banner728.key);
+                var box2 = createAdBox('Banner 300x250', CONFIG.zones.banner300.key);
                 paragraphs[pos2].after(box2.slot);
                 observeAd(box2.slot, function() {
-                    if (mobile) {
-                        renderNativeBanner(box2.content);
-                    } else {
-                        renderBanner728(box2.content);
-                    }
+                    renderBanner300(box2.content);
                 });
             }
         }
 
-        // الإعلان الثالث: قبل الانتقال في نهاية الفصل (القراءة اللانهائية)
         var nav = container.querySelector('.nsw-chapter-nav') || document.querySelector('.nsw-chapter-nav');
-        var transBox = createAdBox('Native Banner (Transition)', CONFIG.zones.nativeBanner.containerId);
+        var transBox = createAdBox('Banner 728x90 (نهاية الفصل)', CONFIG.zones.banner728.key);
         if (nav && nav.parentNode) {
             nav.parentNode.insertBefore(transBox.slot, nav);
         } else {
             container.appendChild(transBox.slot);
         }
         observeAd(transBox.slot, function() {
-            renderNativeBanner(transBox.content);
+            renderBanner728(transBox.content);
         });
     }
 
