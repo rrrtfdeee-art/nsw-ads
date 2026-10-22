@@ -148,8 +148,14 @@
                 align-items: center;
             }
             .nsw-sticky-anchor-bar.nsw-sticky-hidden {
-                transform: translateY(125%) !important;
+                transform: translateY(250%) !important;
+                opacity: 0 !important;
+                visibility: hidden !important;
                 pointer-events: none !important;
+            }
+            /* مسافة أمان سفلية حتى لا يغطي الشريط أي سطر من الرواية */
+            #reading-content, .nsw-chapter-wrapper, #nsw-text-body, .actual-text {
+                padding-bottom: 75px !important;
             }
             .nsw-sticky-close-tab {
                 position: absolute;
