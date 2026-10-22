@@ -1,7 +1,7 @@
 /**
  * Novelskyworld - Ad Manager (English Site)
  * Repository: rrrtfdeee-art/nsw-ads
- * Version: 3.2.0 - Mondiad Clean Multi-Unit Integration (100% Viewability & DOM Purge on Dismiss)
+ * Version: 3.3.0 - Mondiad Clean Multi-Unit Integration (Smart Ad-Ready Synchronization)
  */
 (function() {
     'use strict';
@@ -147,7 +147,7 @@
                 box-shadow: 0 -4px 25px rgba(0, 0, 0, 0.45);
                 text-align: center;
                 box-sizing: border-box;
-                display: flex;
+                display: none; /* Hidden until ad creative is loaded */
                 justify-content: center;
                 align-items: center;
                 animation: nswStickySlideUp 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
@@ -287,7 +287,7 @@
         loadMondiadScript('native');
     }
 
-    // 6. Manage Royal Sticky Anchor Bar with clean DOM purge on dismiss
+    // 6. Manage Royal Sticky Anchor Bar with clean ad-ready synchronization
     function initStickyAnchorBar() {
         var STORAGE_KEY = 'nsw_sticky_hide_until';
         var cooldownMs = (CONFIG.stickyCooldownMin || 10) * 60 * 1000;
@@ -312,6 +312,7 @@
         var anchor = document.createElement('div');
         anchor.id = 'nsw-sticky-anchor';
         anchor.className = 'nsw-sticky-anchor-bar';
+        anchor.style.display = 'none';
 
         var closeTab = document.createElement('button');
         closeTab.className = 'nsw-sticky-close-tab';
@@ -334,6 +335,30 @@
         anchor.appendChild(inner);
         document.body.appendChild(anchor);
 
+        var isShown = false;
+        function checkAndReveal() {
+            if (isShown) return;
+            if (bannerDiv.children.length > 0 || bannerDiv.querySelector('iframe, ins, img, a, div')) {
+                isShown = true;
+                anchor.style.display = 'flex';
+                if (observer) observer.disconnect();
+                clearInterval(poller);
+            }
+        }
+
+        var observer = new MutationObserver(checkAndReveal);
+        observer.observe(bannerDiv, { childList: true, subtree: true });
+
+        var checkCount = 0;
+        var poller = setInterval(function() {
+            checkCount++;
+            checkAndReveal();
+            if (isShown || checkCount > 20) {
+                clearInterval(poller);
+                if (observer) observer.disconnect();
+            }
+        }, 500);
+
         loadMondiadScript('banner');
 
         closeTab.addEventListener('click', function(e) {
@@ -341,7 +366,8 @@
             try {
                 localStorage.setItem(STORAGE_KEY, (Date.now() + cooldownMs).toString());
             } catch(err) {}
-            // DOM purge on dismiss
+            if (observer) observer.disconnect();
+            clearInterval(poller);
             anchor.remove();
             setTimeout(initStickyAnchorBar, cooldownMs);
         });
