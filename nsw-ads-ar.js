@@ -1,14 +1,14 @@
 /**
  * Novelskyworld - Ad Manager (Arabic Site)
  * Repository: rrrtfdeee-art/nsw-ads
- * Version: 2.1.0 - Clean A-Ads (Dual Units: In-Chapter + Royal Sticky Anchor with 10-min dismiss)
+ * Version: 3.0.0 - Mondiad Clean Multi-Unit Integration (Native + Banner + Timed In-Page Push)
  */
 (function() {
     'use strict';
 
-    // Early DNS prefetch & preconnect to eliminate ad SSL handshake delay
+    // Early DNS prefetch & preconnect for Mondiad CDN
     try {
-        ['https://acceptable.a-ads.com', 'https://aads.com'].forEach(function(orig) {
+        ['https://ss.mrmnd.com'].forEach(function(orig) {
             var d = document.createElement('link'); d.rel = 'dns-prefetch'; d.href = orig; document.head.appendChild(d);
             var p = document.createElement('link'); p.rel = 'preconnect'; p.href = orig; p.crossOrigin = 'anonymous'; document.head.appendChild(p);
         });
@@ -17,9 +17,12 @@
     var CONFIG = {
         site: 'ar',
         reportUrl: 'https://www.novelskyworld.com/p/feedback.html',
-        bodyUnitId: '2459344',
-        stickyUnitId: '2459346',
-        stickyCooldownMin: 10
+        nativeZoneId: '870b4533-fc50-43b8-8bb7-4ea2a25aabdd',
+        bannerZoneId: '2ddc0006-79d7-41ec-a73b-432952dcc7d0',
+        inpageScriptUrl: 'https://ss.mrmnd.com/static/9885ff48-8886-4679-be2d-e7c929140470.js',
+        inpageInitialDelaySec: 45,  // فترة تهدئة أولية 45 ثانية للزائر أول مرة
+        inpageIntervalMin: 15,      // تكرار إعلان الاكس كل 15 دقيقة
+        stickyCooldownMin: 10       // مهلة إغلاق الشريط السفلي 10 دقائق
     };
 
     function isMobileDevice() {
@@ -37,8 +40,8 @@
 
         var reportPayload = {
             type: 'ad_report',
-            ad_type: adType || 'A-Ads Banner',
-            zone_id: zoneId || CONFIG.bodyUnitId,
+            ad_type: adType || 'Mondiad Native',
+            zone_id: zoneId || CONFIG.nativeZoneId,
             novel: novel,
             chapter: chapter,
             page_url: currentUrl,
@@ -121,29 +124,6 @@
                 min-height: 90px;
                 margin: 0 auto;
                 width: 100%;
-                overflow: hidden;
-            }
-            .nsw-ad-content iframe {
-                border: 0;
-                padding: 0;
-                width: 100%;
-                max-width: 728px;
-                height: 90px;
-                min-height: 90px;
-                overflow: hidden;
-                display: block;
-                margin: auto;
-            }
-            @media (max-width: 767px) {
-                .nsw-ad-card {
-                    padding: 8px 10px 10px 10px;
-                    border-radius: 8px;
-                    max-width: 100%;
-                }
-                .nsw-ad-content iframe {
-                    height: 100px;
-                    min-height: 100px;
-                }
             }
 
             /* 🌟 الشريط العائم السفلي الملكي (Royal Sticky Anchor Bar) */
@@ -208,23 +188,9 @@
                 justify-content: center;
                 align-items: center;
             }
-            .nsw-sticky-inner iframe {
-                border: 0;
-                padding: 0;
-                width: 100%;
-                max-width: 728px;
-                height: 60px;
-                min-height: 50px;
-                overflow: hidden;
-                display: block;
-                margin: auto;
-            }
             @media (max-width: 767px) {
                 .nsw-sticky-anchor-bar {
                     padding: 3px 4px;
-                }
-                .nsw-sticky-inner iframe {
-                    height: 55px;
                 }
                 .nsw-sticky-close-tab {
                     right: 10px;
@@ -237,8 +203,26 @@
         document.head.appendChild(style);
     }
 
-    // 3. بناء صناديق إعلانات المتن (الوحدة 2459344)
-    function createAdBox(label) {
+    // 3. تحميل سكربتات Mondiad الخارجية مرة واحدة
+    var scriptsLoaded = { native: false, banner: false };
+    function loadMondiadScript(type) {
+        if (type === 'native' && !scriptsLoaded.native) {
+            scriptsLoaded.native = true;
+            var s = document.createElement('script');
+            s.async = true;
+            s.src = 'https://ss.mrmnd.com/native.js';
+            document.head.appendChild(s);
+        } else if (type === 'banner' && !scriptsLoaded.banner) {
+            scriptsLoaded.banner = true;
+            var s = document.createElement('script');
+            s.async = true;
+            s.src = 'https://ss.mrmnd.com/banner.js';
+            document.head.appendChild(s);
+        }
+    }
+
+    // 4. بناء صندوق إعلان Native (جريدة الأخبار 81474)
+    function createNativeBox(label) {
         var slot = document.createElement('div');
         slot.className = 'nsw-ad-slot';
         slot.setAttribute('data-ad-type', label);
@@ -246,12 +230,12 @@
         var card = document.createElement('div');
         card.className = 'nsw-ad-card';
 
-        var reportData = prepareAdReportData(label, CONFIG.bodyUnitId);
+        var reportData = prepareAdReportData(label, CONFIG.nativeZoneId);
 
         var header = document.createElement('div');
         header.className = 'nsw-ad-header';
         header.innerHTML = `
-            <span class="nsw-ad-badge">✨ إعلان مدعوم</span>
+            <span class="nsw-ad-badge">✨ محتوى مدعوم</span>
             <a href="${reportData.url}" target="_blank" rel="noopener noreferrer" class="nsw-ad-report-link">
                 هل يبدو الإعلان مضللاً أو مسيئاً؟ أبلغنا
             </a>
@@ -260,57 +244,18 @@
         var content = document.createElement('div');
         content.className = 'nsw-ad-content';
 
+        var adTarget = document.createElement('div');
+        adTarget.setAttribute('data-mndazid', CONFIG.nativeZoneId);
+        content.appendChild(adTarget);
+
         card.appendChild(header);
         card.appendChild(content);
         slot.appendChild(card);
 
-        return { slot: slot, content: content };
+        return slot;
     }
 
-    // 4. حقن بنر A-Ads
-    function renderAAdsFrame(targetEl, unitId, minHeight) {
-        var iframe = document.createElement('iframe');
-        iframe.setAttribute('data-aa', unitId);
-        iframe.src = 'https://acceptable.a-ads.com/' + unitId + '/?size=Adaptive';
-        iframe.style.border = '0';
-        iframe.style.padding = '0';
-        iframe.style.width = '100%';
-        iframe.style.height = 'auto';
-        iframe.style.minHeight = minHeight || (isMobileDevice() ? '100px' : '90px');
-        iframe.style.overflow = 'hidden';
-        iframe.style.display = 'block';
-        iframe.style.margin = 'auto';
-        iframe.scrolling = 'no';
-        targetEl.appendChild(iframe);
-    }
-
-    // 5. تأخير التحميل (IntersectionObserver)
-    var adObserver = null;
-    function observeAd(slotElement, renderCallback) {
-        if ('IntersectionObserver' in window) {
-            if (!adObserver) {
-                adObserver = new IntersectionObserver(function(entries) {
-                    entries.forEach(function(entry) {
-                        if (entry.isIntersecting) {
-                            var el = entry.target;
-                            var cb = el._renderCallback;
-                            if (cb) {
-                                cb();
-                                delete el._renderCallback;
-                            }
-                            adObserver.unobserve(el);
-                        }
-                    });
-                }, { rootMargin: '800px 0px' });
-            }
-            slotElement._renderCallback = renderCallback;
-            adObserver.observe(slotElement);
-        } else {
-            renderCallback();
-        }
-    }
-
-    // 6. توزيع إعلانات المتن ونهاية الفصل
+    // 5. توزيع إعلانات Native داخل الفصل ونهايته
     function injectAdsIntoContainer(container) {
         if (!container || container.getAttribute('data-ads-injected') === 'true') return;
         container.setAttribute('data-ads-injected', 'true');
@@ -318,37 +263,27 @@
         var paragraphs = container.querySelectorAll('p.nsw-paragraph, p');
         var total = paragraphs.length;
 
+        // إعلان داخل متن الفصل
         if (total >= 4) {
-            var pos1 = Math.min(Math.floor(total * 0.33), 10);
-            var box1 = createAdBox('A-Ads Banner (منتصف الفصل)');
-            paragraphs[pos1].after(box1.slot);
-            observeAd(box1.slot, function() {
-                renderAAdsFrame(box1.content, CONFIG.bodyUnitId);
-            });
-
-            if (total >= 12) {
-                var pos2 = Math.floor(total * 0.66);
-                var box2 = createAdBox('A-Ads Banner (الجزء الثاني)');
-                paragraphs[pos2].after(box2.slot);
-                observeAd(box2.slot, function() {
-                    renderAAdsFrame(box2.content, CONFIG.bodyUnitId);
-                });
-            }
+            var pos1 = Math.min(Math.floor(total * 0.4), 10);
+            var box1 = createNativeBox('Mondiad Native (منتصف الفصل)');
+            paragraphs[pos1].after(box1);
         }
 
+        // إعلان نهاية الفصل قبل التنقل
         var nav = container.querySelector('.nsw-chapter-nav') || document.querySelector('.nsw-chapter-nav');
-        var transBox = createAdBox('A-Ads Banner (نهاية الفصل)');
+        var transBox = createNativeBox('Mondiad Native (نهاية الفصل)');
         if (nav && nav.parentNode) {
-            nav.parentNode.insertBefore(transBox.slot, nav);
+            nav.parentNode.insertBefore(transBox, nav);
         } else {
-            container.appendChild(transBox.slot);
+            container.appendChild(transBox);
         }
-        observeAd(transBox.slot, function() {
-            renderAAdsFrame(transBox.content, CONFIG.bodyUnitId);
-        });
+
+        // تشغيل محرك Native
+        loadMondiadScript('native');
     }
 
-    // 7. إدارة الشريط العائم السفلي الذكي (الوحدة 2459346) مع مهلة 10 دقائق
+    // 6. إدارة الشريط العائم السفلي للبانر (الوحدة 81476)
     function initStickyAnchorBar() {
         if (document.getElementById('nsw-sticky-anchor')) return;
 
@@ -381,14 +316,16 @@
         var inner = document.createElement('div');
         inner.className = 'nsw-sticky-inner';
 
+        var bannerDiv = document.createElement('div');
+        bannerDiv.setAttribute('data-mndbanid', CONFIG.bannerZoneId);
+        inner.appendChild(bannerDiv);
+
         anchor.appendChild(closeTab);
         anchor.appendChild(inner);
         document.body.appendChild(anchor);
 
-        // حقن الإعلان في الشريط
-        renderAAdsFrame(inner, CONFIG.stickyUnitId, '50px');
+        loadMondiadScript('banner');
 
-        // التعامل مع نقرة الإغلاق
         closeTab.addEventListener('click', function(e) {
             e.stopPropagation();
             anchor.classList.add('nsw-sticky-hidden');
@@ -397,7 +334,6 @@
             } catch(err) {}
         });
 
-        // فحص دوري كل دقيقة لإعادة إظهار الشريط بعد انقضاء الـ 10 دقائق
         setInterval(function() {
             if (!isCooldownActive() && anchor.classList.contains('nsw-sticky-hidden')) {
                 anchor.classList.remove('nsw-sticky-hidden');
@@ -405,9 +341,65 @@
         }, 60000);
     }
 
+    // 7. إدارة إعلان الإكس الذكي (In-Page Push 81477) بتهدئة 15 دقيقة ومهلة أولية
+    function initInPagePushManager() {
+        var STORAGE_KEY_LAST = 'nsw_inpage_last_shown';
+        var STORAGE_KEY_FIRST = 'nsw_visitor_first_seen';
+        var intervalMs = (CONFIG.inpageIntervalMin || 15) * 60 * 1000;
+        var initialDelayMs = (CONFIG.inpageInitialDelaySec || 45) * 1000;
+
+        var now = Date.now();
+        var firstSeen = localStorage.getItem(STORAGE_KEY_FIRST);
+        if (!firstSeen) {
+            localStorage.setItem(STORAGE_KEY_FIRST, now.toString());
+            firstSeen = now;
+        } else {
+            firstSeen = parseInt(firstSeen, 10);
+        }
+
+        var lastShown = parseInt(localStorage.getItem(STORAGE_KEY_LAST) || '0', 10);
+
+        function triggerInPagePush() {
+            if (document.getElementById('nsw-inpage-push-script')) return;
+            var script = document.createElement('script');
+            script.id = 'nsw-inpage-push-script';
+            script.async = true;
+            script.src = CONFIG.inpageScriptUrl;
+            document.head.appendChild(script);
+            try {
+                localStorage.setItem(STORAGE_KEY_LAST, Date.now().toString());
+            } catch(e) {}
+        }
+
+        // فحص هل الزائر جديد وفي فترة التهدئة الأولية؟
+        var timeSinceFirstSeen = now - firstSeen;
+        var timeSinceLastShown = now - lastShown;
+
+        if (lastShown === 0) {
+            // أول ظهور على الإطلاق للزائر: ننتظر انقضاء المهلة الأولية (45 ثانية)
+            if (timeSinceFirstSeen < initialDelayMs) {
+                setTimeout(triggerInPagePush, initialDelayMs - timeSinceFirstSeen);
+            } else {
+                // مر أكثر من 45 ثانية منذ دخوله: ننتظر 10 ثوانٍ بعد تحميل الصفحة الحالية ثم نظهره
+                setTimeout(triggerInPagePush, 10000);
+            }
+        } else {
+            // زائر سابق: فحص انقضاء الـ 15 دقيقة
+            if (timeSinceLastShown >= intervalMs) {
+                // انقضت الـ 15 دقيقة: نظهره بعد 12 ثانية من تصفحه الفصل
+                setTimeout(triggerInPagePush, 12000);
+            } else {
+                // لم تنقضِ الـ 15 دقيقة بعد: نجدول إظهاره فور اكتمال الوقت المتبقي
+                var remaining = intervalMs - timeSinceLastShown;
+                setTimeout(triggerInPagePush, remaining);
+            }
+        }
+    }
+
     function init() {
         injectStyles();
         initStickyAnchorBar();
+        initInPagePushManager();
 
         var mainBody = document.querySelector('#nsw-text-body, .actual-text, #reading-content');
         if (mainBody) {
