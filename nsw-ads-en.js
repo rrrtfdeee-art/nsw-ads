@@ -1,7 +1,7 @@
 /**
  * Novelskyworld - Ad Manager (English Site)
  * Repository: rrrtfdeee-art/nsw-ads
- * Version: 3.3.0 - Mondiad Clean Multi-Unit Integration (Smart Ad-Ready Synchronization)
+ * Version: 3.4.0 - Dedicated English Property Zones (en.novelskyworld.com)
  */
 (function() {
     'use strict';
@@ -17,9 +17,9 @@
     var CONFIG = {
         site: 'en',
         reportUrl: 'https://en.novelskyworld.com/p/feedback.html',
-        nativeZoneId: '870b4533-fc50-43b8-8bb7-4ea2a25aabdd',
-        bannerZoneId: '2ddc0006-79d7-41ec-a73b-432952dcc7d0',
-        inpageScriptUrl: 'https://ss.mrmnd.com/static/9885ff48-8886-4679-be2d-e7c929140470.js',
+        nativeZoneId: 'e74e7c92-2852-4c1b-b580-10722d0523f2',
+        bannerZoneId: '73a0face-fa9d-4a37-848c-a4e0d330168b',
+        inpageScriptUrl: 'https://ss.mrmnd.com/static/3c296e65-5832-4020-996f-ca3185adc99e.js',
         inpageInitialDelaySec: 45,  // 45s grace period for new visitors
         inpageIntervalMin: 15,      // Frequency cap: once every 15 minutes
         stickyCooldownMin: 10       // Sticky anchor dismiss cooldown: 10 minutes
@@ -373,7 +373,7 @@
         });
     }
 
-    // 7. Manage In-Page Push (Zone 81477) with 15-min cap and initial delay
+    // 7. Manage In-Page Push (Zone 83394) with 15-min cap and initial delay
     function initInPagePushManager() {
         var STORAGE_KEY_LAST = 'nsw_inpage_last_shown';
         var STORAGE_KEY_FIRST = 'nsw_visitor_first_seen';
