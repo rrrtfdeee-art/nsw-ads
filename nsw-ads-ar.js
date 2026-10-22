@@ -1,7 +1,7 @@
 /**
  * Novelskyworld - Ad Manager (Arabic Site)
  * Repository: rrrtfdeee-art/nsw-ads
- * Version: 3.2.0 - Mondiad Clean Multi-Unit Integration (100% Viewability & DOM Purge on Dismiss)
+ * Version: 3.3.0 - Mondiad Clean Multi-Unit Integration (Smart Ad-Ready Synchronization)
  */
 (function() {
     'use strict';
@@ -147,7 +147,7 @@
                 box-shadow: 0 -4px 25px rgba(0, 0, 0, 0.45);
                 text-align: center;
                 box-sizing: border-box;
-                display: flex;
+                display: none; /* يبدأ مخفياً تماماً حتى يكتمل تجهيز الإعلان */
                 justify-content: center;
                 align-items: center;
                 animation: nswStickySlideUp 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
@@ -284,11 +284,10 @@
             container.appendChild(transBox);
         }
 
-        // تشغيل محرك Native
         loadMondiadScript('native');
     }
 
-    // 6. إدارة الشريط العائم السفلي بحذف تام من الـ DOM أثناء التهدئة (100% Viewability)
+    // 6. إدارة الشريط العائم السفلي بمزامنة تامة (لا يظهر الشريط وزر الإغلاق إلا بعد حقن الإعلان فعلياً)
     function initStickyAnchorBar() {
         var STORAGE_KEY = 'nsw_sticky_hide_until';
         var cooldownMs = (CONFIG.stickyCooldownMin || 10) * 60 * 1000;
@@ -302,7 +301,6 @@
             }
         }
 
-        // إذا كانت فترة التهدئة جارية: لا ننشئ العنصر ولا نطلب الإعلان نهائياً
         if (isCooldownActive()) {
             var remaining = parseInt(localStorage.getItem(STORAGE_KEY) || '0', 10) - Date.now();
             setTimeout(initStickyAnchorBar, Math.max(remaining, 5000));
@@ -314,6 +312,7 @@
         var anchor = document.createElement('div');
         anchor.id = 'nsw-sticky-anchor';
         anchor.className = 'nsw-sticky-anchor-bar';
+        anchor.style.display = 'none'; // بداية مخفية تماماً
 
         var closeTab = document.createElement('button');
         closeTab.className = 'nsw-sticky-close-tab';
@@ -336,6 +335,32 @@
         anchor.appendChild(inner);
         document.body.appendChild(anchor);
 
+        // مراقبة حقن إعلان Mondiad: إظهار الشريط وزر الإغلاق معاً فقط عند اكتمال الإعلان
+        var isShown = false;
+        function checkAndReveal() {
+            if (isShown) return;
+            if (bannerDiv.children.length > 0 || bannerDiv.querySelector('iframe, ins, img, a, div')) {
+                isShown = true;
+                anchor.style.display = 'flex';
+                if (observer) observer.disconnect();
+                clearInterval(poller);
+            }
+        }
+
+        var observer = new MutationObserver(checkAndReveal);
+        observer.observe(bannerDiv, { childList: true, subtree: true });
+
+        // فحص دوري حتى 10 ثوانٍ كخطة بديلة
+        var checkCount = 0;
+        var poller = setInterval(function() {
+            checkCount++;
+            checkAndReveal();
+            if (isShown || checkCount > 20) {
+                clearInterval(poller);
+                if (observer) observer.disconnect();
+            }
+        }, 500);
+
         loadMondiadScript('banner');
 
         closeTab.addEventListener('click', function(e) {
@@ -343,9 +368,9 @@
             try {
                 localStorage.setItem(STORAGE_KEY, (Date.now() + cooldownMs).toString());
             } catch(err) {}
-            // حذف كامل من الـ DOM: صفر بقايا وظهور نظيف 100%
+            if (observer) observer.disconnect();
+            clearInterval(poller);
             anchor.remove();
-            // إعادة التوليد بعد انتهاء مهلة الـ 10 دقائق
             setTimeout(initStickyAnchorBar, cooldownMs);
         });
     }
